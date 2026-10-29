@@ -17,6 +17,9 @@ app.use('/api/subjects', subjectRoutes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
+const lessonRoutes = require('./routes/lessonRoutes');
+app.use('/api/lessons', lessonRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
