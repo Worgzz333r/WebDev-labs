@@ -27,6 +27,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+const errorHandler = require('./utils/errorHandler');
+
+// ...усі app.use('/api/...') вище...
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+app.use(errorHandler);
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
