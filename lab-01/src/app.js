@@ -14,6 +14,9 @@ app.use('/api/groups', groupRoutes);
 const subjectRoutes = require('./routes/subjectRoutes');
 app.use('/api/subjects', subjectRoutes);
 
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
