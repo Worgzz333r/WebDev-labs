@@ -1,7 +1,7 @@
-const express = require('express');
-const controller = require('../controllers/lessonController');
-const validate = require('../utils/validate');
-const { lessonCreateSchema, lessonUpdateSchema } = require('../utils/schemas');
+import express from 'express';
+import * as controller from '../controllers/lessonController.js';
+import validate from '../utils/validate.js';
+import { lessonCreateSchema, lessonUpdateSchema } from '../utils/schemas.js';
 
 const router = express.Router();
 
@@ -18,4 +18,4 @@ router.post('/', validate(lessonCreateSchema), controller.create);
 router.put('/:id', validate(lessonUpdateSchema), controller.update);
 router.delete('/:id', controller.remove);
 
-module.exports = router;
+export default router;

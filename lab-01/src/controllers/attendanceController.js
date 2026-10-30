@@ -1,11 +1,11 @@
-const prisma = require('../utils/prisma');
+import prisma from '../utils/prisma.js';
 
 const include = {
   student: { select: { id: true, fullName: true } },
   document: true,
 };
 
-exports.getAll = async (req, res) => {
+export const getAll = async (req, res) => {
   const { lessonId, studentId } = req.query;
   const where = {};
   if (lessonId) where.lessonId = Number(lessonId);
@@ -14,14 +14,14 @@ exports.getAll = async (req, res) => {
   res.json(records);
 };
 
-exports.getOne = async (req, res) => {
+export const getOne = async (req, res) => {
   const id = Number(req.params.id);
   const record = await prisma.attendance.findUnique({ where: { id }, include });
   if (!record) return res.status(404).json({ error: 'Attendance not found' });
   res.json(record);
 };
 
-exports.create = async (req, res) => {
+export const create = async (req, res) => {
   const { lessonId, studentId, status, comment } = req.body;
   const record = await prisma.attendance.create({
     data: { lessonId, studentId, status, comment },
@@ -30,7 +30,7 @@ exports.create = async (req, res) => {
   res.status(201).json(record);
 };
 
-exports.update = async (req, res) => {
+export const update = async (req, res) => {
   const id = Number(req.params.id);
   const { status, comment } = req.body;
   const record = await prisma.attendance.update({
@@ -41,7 +41,7 @@ exports.update = async (req, res) => {
   res.json(record);
 };
 
-exports.remove = async (req, res) => {
+export const remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.attendance.delete({ where: { id } });
   res.status(204).send();
