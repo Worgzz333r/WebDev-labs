@@ -7,6 +7,7 @@ import userRoutes from './routes/userRoutes.js';
 import lessonRoutes from './routes/lessonRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
 import errorHandler from './utils/errorHandler.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/lessons', lessonRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

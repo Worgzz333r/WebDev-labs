@@ -9,7 +9,7 @@ export const nameSchema = z.object({
 
 export const userCreateSchema = z.object({
   email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   fullName: z.string().trim().min(1, 'Full name is required'),
   role: Role.optional(),
   groupId: z.number().int().positive().optional(),
@@ -37,4 +37,25 @@ export const attendanceCreateSchema = z.object({
 export const attendanceUpdateSchema = z.object({
   status: Status.optional(),
   comment: z.string().trim().max(500).optional(),
+});
+
+export const registerSchema = z.object({
+  email: z.string().trim().email('Invalid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  fullName: z.string().trim().min(1, 'Full name is required').max(100),
+  groupId: z.number().int().positive().optional(),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Current password is required'),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
 });
