@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import { hashPassword } from '../utils/password.js';
 import prisma from '../utils/prisma.js';
 
 // які поля віддаємо клієнту (без password)
@@ -28,7 +28,7 @@ export const getOne = async (req, res) => {
 
 export const create = async (req, res) => {
   const { email, password, fullName, role, groupId } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
+  const hashed = await hashPassword(password);
   const user = await prisma.user.create({
     data: { email, password: hashed, fullName, role, groupId },
     select: publicFields,
@@ -40,7 +40,7 @@ export const update = async (req, res) => {
   const id = Number(req.params.id);
   const { email, password, fullName, role, groupId } = req.body;
   const data = { email, fullName, role, groupId };
-  if (password) data.password = await bcrypt.hash(password, 10);
+  if (password) data.password = await hashPassword(password);
   const user = await prisma.user.update({
     where: { id },
     data,
