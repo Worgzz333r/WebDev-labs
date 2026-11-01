@@ -1,0 +1,122 @@
+@host = http://localhost:3000
+
+### 1. Реєстрація (очікуємо 201, role STUDENT)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123", "fullName": "Іван Студент" }
+
+### 2. Повторна реєстрація (очікуємо 409)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123", "fullName": "Іван Студент" }
+
+### 3. Короткий пароль (очікуємо 400)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "short@example.com", "password": "short", "fullName": "Тест" }
+
+### 4. Спроба зареєструвати адміна (очікуємо 201, але role STUDENT)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "hacker@example.com", "password": "password123", "fullName": "Хакер", "role": "ADMIN" }
+
+### 5. Вхід (очікуємо 200)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 6. Хибний пароль (очікуємо 401)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "wrongpassword" }
+
+### 7. Refresh з токеном із кроку 5 (очікуємо 200 і новий refreshToken)
+# @name refreshed
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.tokens.refreshToken}}" }
+
+### 8. Refresh зі СТАРИМ токеном (очікуємо 401)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.tokens.refreshToken}}" }
+
+### 9. Refresh з токеном із кроку 7 (очікуємо 401, бо після кроку 8 усі токени відкликані)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshed.response.body.tokens.refreshToken}}" }
+
+### 10a. Новий вхід для перевірки logout
+# @name login2
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 10b. Logout (очікуємо 204)
+POST {{host}}/api/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{login2.response.body.tokens.refreshToken}}" }
+
+### 10c. Refresh після logout (очікуємо 401)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login2.response.body.tokens.refreshToken}}" }
+
+### 11. Зміна пароля без токена (очікуємо 401)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+
+{ "currentPassword": "password123", "newPassword": "newpassword456" }
+
+### 12a. Вхід для зміни пароля
+# @name login3
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 12b. Зміна пароля (очікуємо 200)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{login3.response.body.tokens.accessToken}}
+
+{ "currentPassword": "password123", "newPassword": "newpassword456" }
+
+### 12c. Вхід зі старим паролем (очікуємо 401)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 12d. Вхід з новим паролем (очікуємо 200)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "newpassword456" }
+
+### 13a. Вхід для перевірки хибного пароля (очікуємо 200)
+# @name login4
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "newpassword456" }
+
+### 13b. Зміна пароля з хибним поточним (очікуємо 400)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{login4.response.body.tokens.accessToken}}
+
+{ "currentPassword": "wrongpassword", "newPassword": "anotherpassword789" }
