@@ -1,7 +1,7 @@
-import express from 'express';
-import * as controller from '../controllers/groupController.js';
-import validate from '../utils/validate.js';
-import { nameSchema } from '../utils/schemas.js';
+const express = require('express');
+const controller = require('../controllers/groupController');
+const validate = require('../utils/validate');
+const { nameSchema } = require('../utils/schemas');
 
 const router = express.Router();
 
@@ -18,4 +18,4 @@ router.post('/', validate(nameSchema), controller.create);
 router.put('/:id', validate(nameSchema), controller.update);
 router.delete('/:id', controller.remove);
 
-export default router;
+module.exports = router;

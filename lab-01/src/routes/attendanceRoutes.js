@@ -1,7 +1,7 @@
-import express from 'express';
-import * as controller from '../controllers/attendanceController.js';
-import validate from '../utils/validate.js';
-import { attendanceCreateSchema, attendanceUpdateSchema } from '../utils/schemas.js';
+const express = require('express');
+const controller = require('../controllers/attendanceController');
+const validate = require('../utils/validate');
+const { attendanceCreateSchema, attendanceUpdateSchema } = require('../utils/schemas');
 
 const router = express.Router();
 
@@ -18,4 +18,4 @@ router.post('/', validate(attendanceCreateSchema), controller.create);
 router.put('/:id', validate(attendanceUpdateSchema), controller.update);
 router.delete('/:id', controller.remove);
 
-export default router;
+module.exports = router;

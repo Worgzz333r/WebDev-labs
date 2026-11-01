@@ -1,5 +1,5 @@
-import bcrypt from 'bcrypt';
-import prisma from '../utils/prisma.js';
+const bcrypt = require('bcrypt');
+const prisma = require('../utils/prisma');
 
 // які поля віддаємо клієнту (без password)
 const publicFields = {
@@ -11,12 +11,12 @@ const publicFields = {
   createdAt: true,
 };
 
-export const getAll = async (req, res) => {
+exports.getAll = async (req, res) => {
   const users = await prisma.user.findMany({ select: publicFields });
   res.json(users);
 };
 
-export const getOne = async (req, res) => {
+exports.getOne = async (req, res) => {
   const id = Number(req.params.id);
   const user = await prisma.user.findUnique({
     where: { id },
@@ -26,7 +26,7 @@ export const getOne = async (req, res) => {
   res.json(user);
 };
 
-export const create = async (req, res) => {
+exports.create = async (req, res) => {
   const { email, password, fullName, role, groupId } = req.body;
   const hashed = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
@@ -36,7 +36,7 @@ export const create = async (req, res) => {
   res.status(201).json(user);
 };
 
-export const update = async (req, res) => {
+exports.update = async (req, res) => {
   const id = Number(req.params.id);
   const { email, password, fullName, role, groupId } = req.body;
   const data = { email, fullName, role, groupId };
@@ -49,7 +49,7 @@ export const update = async (req, res) => {
   res.json(user);
 };
 
-export const remove = async (req, res) => {
+exports.remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.user.delete({ where: { id } });
   res.status(204).send();

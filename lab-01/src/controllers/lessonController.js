@@ -1,4 +1,4 @@
-import prisma from '../utils/prisma.js';
+const prisma = require('../utils/prisma');
 
 const include = {
   subject: true,
@@ -6,7 +6,7 @@ const include = {
   teacher: { select: { id: true, fullName: true } },
 };
 
-export const getAll = async (req, res) => {
+exports.getAll = async (req, res) => {
   const { groupId, subjectId } = req.query;
   const where = {};
   if (groupId) where.groupId = Number(groupId);
@@ -19,7 +19,7 @@ export const getAll = async (req, res) => {
   res.json(lessons);
 };
 
-export const getOne = async (req, res) => {
+exports.getOne = async (req, res) => {
   const id = Number(req.params.id);
   const lesson = await prisma.lesson.findUnique({
     where: { id },
@@ -34,7 +34,7 @@ export const getOne = async (req, res) => {
   res.json(lesson);
 };
 
-export const create = async (req, res) => {
+exports.create = async (req, res) => {
   const { date, topic, subjectId, groupId, teacherId } = req.body;
   const lesson = await prisma.lesson.create({
     data: { date: new Date(date), topic, subjectId, groupId, teacherId },
@@ -43,7 +43,7 @@ export const create = async (req, res) => {
   res.status(201).json(lesson);
 };
 
-export const update = async (req, res) => {
+exports.update = async (req, res) => {
   const id = Number(req.params.id);
   const { date, topic, subjectId, groupId, teacherId } = req.body;
   const lesson = await prisma.lesson.update({
@@ -60,7 +60,7 @@ export const update = async (req, res) => {
   res.json(lesson);
 };
 
-export const remove = async (req, res) => {
+exports.remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.lesson.delete({ where: { id } });
   res.status(204).send();

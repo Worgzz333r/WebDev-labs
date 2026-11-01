@@ -1,7 +1,7 @@
-import express from 'express';
-import * as controller from '../controllers/userController.js';
-import validate from '../utils/validate.js';
-import { userCreateSchema, userUpdateSchema } from '../utils/schemas.js';
+const express = require('express');
+const controller = require('../controllers/userController');
+const validate = require('../utils/validate');
+const { userCreateSchema, userUpdateSchema } = require('../utils/schemas');
 
 const router = express.Router();
 
@@ -18,4 +18,4 @@ router.post('/', validate(userCreateSchema), controller.create);
 router.put('/:id', validate(userUpdateSchema), controller.update);
 router.delete('/:id', controller.remove);
 
-export default router;
+module.exports = router;

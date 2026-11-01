@@ -1,13 +1,13 @@
-import { z } from 'zod';
+const { z } = require('zod');
 
 const Role = z.enum(['ADMIN', 'TEACHER', 'STUDENT']);
 const Status = z.enum(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED']);
 
-export const nameSchema = z.object({
+exports.nameSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
 });
 
-export const userCreateSchema = z.object({
+exports.userCreateSchema = z.object({
   email: z.string().email('Invalid email'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   fullName: z.string().trim().min(1, 'Full name is required'),
@@ -15,9 +15,9 @@ export const userCreateSchema = z.object({
   groupId: z.number().int().positive().optional(),
 });
 
-export const userUpdateSchema = userCreateSchema.partial();
+exports.userUpdateSchema = exports.userCreateSchema.partial();
 
-export const lessonCreateSchema = z.object({
+exports.lessonCreateSchema = z.object({
   date: z.string().datetime({ message: 'Date must be ISO 8601, e.g. 2026-10-30T09:00:00Z' }),
   topic: z.string().trim().optional(),
   subjectId: z.number().int().positive(),
@@ -25,16 +25,16 @@ export const lessonCreateSchema = z.object({
   teacherId: z.number().int().positive(),
 });
 
-export const lessonUpdateSchema = lessonCreateSchema.partial();
+exports.lessonUpdateSchema = exports.lessonCreateSchema.partial();
 
-export const attendanceCreateSchema = z.object({
+exports.attendanceCreateSchema = z.object({
   lessonId: z.number().int().positive(),
   studentId: z.number().int().positive(),
   status: Status.optional(),
   comment: z.string().trim().max(500).optional(),
 });
 
-export const attendanceUpdateSchema = z.object({
+exports.attendanceUpdateSchema = z.object({
   status: Status.optional(),
   comment: z.string().trim().max(500).optional(),
 });
