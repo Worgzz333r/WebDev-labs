@@ -1,4 +1,7 @@
+import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 import prisma from '../utils/prisma.js';
+
+const LESSON_SORT_FIELDS = ['id', 'date', 'topic'];
 
 const include = {
   subject: true,
@@ -7,16 +10,46 @@ const include = {
 };
 
 export const getAll = async (req, res) => {
-  const { groupId, subjectId } = req.query;
+  const { search, subjectId, groupId, teacherId, dateFrom, dateTo } = req.query;
+
+  for (const [name, value] of Object.entries({ subjectId, groupId, teacherId })) {
+    if (value !== undefined && toId(value) === null) {
+      return res.status(400).json({ error: `Invalid ${name} filter` });
+    }
+  }
+
+  const from = dateFrom ? new Date(dateFrom) : null;
+  const to = dateTo ? new Date(dateTo) : null;
+  if ((from && Number.isNaN(from.getTime())) || (to && Number.isNaN(to.getTime()))) {
+    return res.status(400).json({ error: 'Dates must be ISO 8601, e.g. 2026-10-30' });
+  }
+
+  if (to && /^\d{4}-\d{2}-\d{2}$/.test(dateTo)) to.setUTCHours(23, 59, 59, 999);
+
   const where = {};
-  if (groupId) where.groupId = Number(groupId);
-  if (subjectId) where.subjectId = Number(subjectId);
-  const lessons = await prisma.lesson.findMany({
-    where,
-    include,
-    orderBy: { date: 'desc' },
-  });
-  res.json(lessons);
+  if (search) where.topic = { contains: search, mode: 'insensitive' };
+  if (subjectId !== undefined) where.subjectId = toId(subjectId);
+  if (groupId !== undefined) where.groupId = toId(groupId);
+  if (teacherId !== undefined) where.teacherId = toId(teacherId);
+  if (from || to) {
+    where.date = { ...(from && { gte: from }), ...(to && { lte: to }) };
+  }
+
+  const pagination = parsePagination(req.query);
+  const orderBy = parseSort(req.query, LESSON_SORT_FIELDS, 'date', 'desc');
+
+  const [lessons, total] = await Promise.all([
+    prisma.lesson.findMany({
+      where,
+      include,
+      orderBy,
+      skip: pagination.skip,
+      take: pagination.limit,
+    }),
+    prisma.lesson.count({ where }),
+  ]);
+
+  res.json({ data: lessons, pagination: buildPagination(pagination, total, lessons.length) });
 };
 
 export const getOne = async (req, res) => {

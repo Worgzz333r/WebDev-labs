@@ -1,10 +1,28 @@
 import prisma from '../utils/prisma.js';
+import { parsePagination, parseSort, buildPagination } from '../utils/query.js';
+
+const SUBJECT_SORT_FIELDS = ['id', 'name'];
 
 export const getAll = async (req, res) => {
-  const subjects = await prisma.subject.findMany({
-    include: { _count: { select: { lessons: true } } },
-  });
-  res.json(subjects);
+  const { search } = req.query;
+
+  const where = {};
+  if (search) where.name = { contains: search, mode: 'insensitive' };
+
+  const pagination = parsePagination(req.query);
+  const orderBy = parseSort(req.query, SUBJECT_SORT_FIELDS, 'name', 'asc');
+
+  const [subjects, total] = await Promise.all([
+    prisma.subject.findMany({
+      where,
+      orderBy,
+      skip: pagination.skip,
+      take: pagination.limit,
+    }),
+    prisma.subject.count({ where }),
+  ]);
+
+  res.json({ data: subjects, pagination: buildPagination(pagination, total, subjects.length) });
 };
 
 export const getOne = async (req, res) => {

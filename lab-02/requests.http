@@ -120,3 +120,57 @@ Content-Type: application/json
 Authorization: Bearer {{login4.response.body.tokens.accessToken}}
 
 { "currentPassword": "wrongpassword", "newPassword": "anotherpassword789" }
+
+### Дані 1. Предмет
+# @name subject
+POST {{host}}/api/subjects
+Content-Type: application/json
+
+{ "name": "Математика" }
+
+### Дані 2. Ще один предмет
+POST {{host}}/api/subjects
+Content-Type: application/json
+
+{ "name": "Фізика" }
+
+### Дані 3. Група
+# @name group
+POST {{host}}/api/groups
+Content-Type: application/json
+
+{ "name": "KN-23" }
+
+### Дані 4. Викладач (поки що створюємо через /api/users, бо маршрут ще не захищений)
+# @name teacher
+POST {{host}}/api/users
+Content-Type: application/json
+
+{ "email": "teacher@example.com", "password": "password123", "fullName": "Олена Викладач", "role": "TEACHER" }
+
+### Дані 5. Студент у групі
+# @name student2
+POST {{host}}/api/users
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "password123", "fullName": "Петро Студент", "role": "STUDENT", "groupId": {{group.response.body.id}} }
+
+### Дані 6. Заняття 30 жовтня
+# @name lesson1
+POST {{host}}/api/lessons
+Content-Type: application/json
+
+{ "date": "2026-10-30T09:00:00Z", "topic": "Інтеграли", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+### Дані 7. Заняття 31 жовтня (перевірка dateTo)
+POST {{host}}/api/lessons
+Content-Type: application/json
+
+{ "date": "2026-10-31T09:00:00Z", "topic": "Похідні", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+### Дані 8. Відвідуваність: відсутній
+# @name att1
+POST {{host}}/api/attendance
+Content-Type: application/json
+
+{ "lessonId": {{lesson1.response.body.id}}, "studentId": {{student2.response.body.id}}, "status": "ABSENT", "comment": "Захворів" }
