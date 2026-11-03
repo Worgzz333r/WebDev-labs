@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import fs from 'node:fs/promises';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 
 const STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
@@ -40,6 +41,8 @@ export const getAll = async (req, res) => {
     where.lesson = { date: { ...(from && { gte: from }), ...(to && { lte: to }) } };
   }
 
+  if (req.user.role === 'STUDENT') where.studentId = req.user.userId;
+
   const pagination = parsePagination(req.query);
   const orderBy = parseSort(req.query, ATTENDANCE_SORT_FIELDS, 'id', 'desc');
 
@@ -61,6 +64,11 @@ export const getOne = async (req, res) => {
   const id = Number(req.params.id);
   const record = await prisma.attendance.findUnique({ where: { id }, include });
   if (!record) return res.status(404).json({ error: 'Attendance not found' });
+
+  if (req.user.role === 'STUDENT' && record.studentId !== req.user.userId) {
+    return res.status(403).json({ error: 'Недостатньо прав для перегляду цього запису' });
+  }
+
   res.json(record);
 };
 
@@ -89,3 +97,55 @@ export const remove = async (req, res) => {
   await prisma.attendance.delete({ where: { id } });
   res.status(204).send();
 };
+
+export const attachDocument = async (req, res) => {
+  // Прибирає завантажений файл, якщо запит не завершився успішно
+  const cleanup = () => (req.file ? fs.unlink(req.file.path).catch(() => {}) : undefined);
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Файл не надано' });
+  }
+
+  const id = Number(req.params.id);
+  const attendance = await prisma.attendance.findUnique({
+    where: { id },
+    include: { document: true },
+  });
+
+  if (!attendance) {
+    await cleanup();
+    return res.status(404).json({ error: 'Attendance not found' });
+  }
+  if (req.user.role === 'STUDENT' && attendance.studentId !== req.user.userId) {
+    await cleanup();
+    return res.status(403).json({ error: 'Можна прикріпити довідку лише до власного запису' });
+  }
+  if (attendance.document) {
+    await cleanup();
+    return res.status(409).json({ error: 'До цього запису вже прикріплено довідку' });
+  }
+
+  try {
+    const document = await prisma.document.create({
+      data: {
+        attendance: { connect: { id } },
+        file: {
+          create: {
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            path: req.file.path,
+            user: { connect: { id: req.user.userId } },
+          },
+        },
+      },
+      include: { file: true },
+    });
+    res.status(201).json(document);
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
+};
+

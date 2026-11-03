@@ -1,4 +1,15 @@
+import multer from 'multer';
+
 const errorHandler = (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        const error = err.code === 'LIMIT_FILE_SIZE' ? 'Файл занадто великий' : 'Помилка завантаження файлу';
+        return res.status(400).json({ error });
+    }
+    // помилка з fileFilter (Непідтримуваний тип файлу) має err.status = 400
+    if (err.status && err.status < 500) {
+        return res.status(err.status).json({ error: err.message });
+    }
+
     // помилки Prisma мають код
     if (err.code === 'P2025') {
         return res.status(404).json({ error: 'Record not found' });

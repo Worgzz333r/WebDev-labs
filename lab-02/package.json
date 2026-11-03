@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --env-file=.env --watch src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --env-file=.env --test \"tests/**/*.test.js\""
+    "test": "node --env-file=.env --test \"tests/**/*.test.js\"",
+    "seed:admin": "node --env-file=.env scripts/create-admin.js"
   },
   "keywords": [],
   "author": "",

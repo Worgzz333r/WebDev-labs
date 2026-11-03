@@ -15,6 +15,7 @@ import {
   changePasswordSchema,
 } from '../utils/schemas.js';
 
+
 const router = Router();
 
 router.post('/register', validate(registerSchema), register);

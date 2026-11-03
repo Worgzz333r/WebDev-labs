@@ -2,6 +2,8 @@ import express from 'express';
 import * as controller from '../controllers/subjectController.js';
 import validate from '../utils/validate.js';
 import { nameSchema } from '../utils/schemas.js';
+import { authenticate } from '../middleware/auth.js';
+import { authorize } from '../middleware/authorize.js';
 
 const router = express.Router();
 
@@ -12,10 +14,10 @@ router.param('id', (req, res, next, value) => {
   next();
 });
 
-router.get('/', controller.getAll);
-router.get('/:id', controller.getOne);
-router.post('/', validate(nameSchema), controller.create);
-router.put('/:id', validate(nameSchema), controller.update);
-router.delete('/:id', controller.remove);
+router.get('/', authenticate, controller.getAll);
+router.get('/:id', authenticate, controller.getOne);
+router.post('/', authenticate, authorize('ADMIN'), validate(nameSchema), controller.create);
+router.put('/:id', authenticate, authorize('ADMIN'), validate(nameSchema), controller.update);
+router.delete('/:id', authenticate, authorize('ADMIN'), controller.remove);
 
 export default router;
