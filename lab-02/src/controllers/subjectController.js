@@ -25,6 +25,7 @@ export const getAll = async (req, res) => {
   res.json({ data: subjects, pagination: buildPagination(pagination, total, subjects.length) });
 };
 
+
 export const getOne = async (req, res) => {
   const id = Number(req.params.id);
   const subject = await prisma.subject.findUnique({ where: { id } });
