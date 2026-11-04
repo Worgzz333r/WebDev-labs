@@ -12,8 +12,86 @@ router.param('id', (req, res, next, value) => {
   next();
 });
 
+/**
+ * @openapi
+ * /api/files/upload:
+ *   post:
+ *     tags: [Files]
+ *     summary: Завантажити файл (jpeg, png, gif, pdf)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Файл завантажено, повертається { message, file }
+ *       400:
+ *         description: Файл не надано, непідтримуваний тип або завеликий розмір
+ *       401:
+ *         description: Не авторизовано
+ */
 router.post('/upload', authenticate, upload.single('file'), controller.uploadFile);
+
+/**
+ * @openapi
+ * /api/files/{id}:
+ *   get:
+ *     tags: [Files]
+ *     summary: Отримати файл (власник, TEACHER, ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200:
+ *         description: Вміст файлу
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Некоректний id
+ *       401:
+ *         description: Не авторизовано
+ *       403:
+ *         description: Недостатньо прав
+ *       404:
+ *         description: Файл не знайдено
+ */
 router.get('/:id', authenticate, controller.getFile);
+
+/**
+ * @openapi
+ * /api/files/{id}:
+ *   delete:
+ *     tags: [Files]
+ *     summary: Видалити файл (власник або ADMIN)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - { in: path, name: id, required: true, schema: { type: integer } }
+ *     responses:
+ *       200:
+ *         description: Файл видалено, повертається { message }
+ *       400:
+ *         description: Некоректний id
+ *       401:
+ *         description: Не авторизовано
+ *       403:
+ *         description: Недостатньо прав
+ *       404:
+ *         description: Файл не знайдено
+ */
 router.delete('/:id', authenticate, controller.deleteFile);
 
 export default router;
