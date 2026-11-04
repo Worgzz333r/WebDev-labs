@@ -7,4 +7,3 @@ node_modules
 skills-lock.json
 uploads/
 src/generated/
-requests.http
