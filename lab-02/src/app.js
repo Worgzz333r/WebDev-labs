@@ -28,6 +28,21 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Захист від підбору паролів, refresh-токенів і кодів 2FA: рахуються лише НЕвдалі спроби (4xx),
+// успішні запити ліміт не витрачають, тому звичайні користувачі його не відчують
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Забагато невдалих спроб, спробуйте пізніше' },
+});
+app.use(
+  ['/api/auth/login', '/api/auth/refresh', '/api/auth/change-password', '/api/auth/2fa'],
+  authLimiter,
+);
+
 app.use(express.json());
 
 app.use('/api/groups', groupRoutes);

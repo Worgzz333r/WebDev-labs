@@ -1,90 +1,48 @@
-# Звіт про виконання лабораторної роботи №2
+# Звіт з лабораторної роботи 2
 
-**Тема:** Аутентифікація, авторизація та розширений функціонал
-**Дисципліна:** Веб-розробка
-**Виконав:** [Генелюк Назар Олексійович]
-**Група:** [ІПЗ-42]
-**Предметна область:** система обліку відвідуваності студентів
-**Репозиторій:** https://github.com/Worgzz333r/WebDev-labs
+## Тема роботи: Аутентифікація, авторизація та розширений функціонал
 
----
+Здобувач освіти: [Генелюк Назар Олексійович]
+Група: [ІПЗ-42]
+GitHub репозиторій: [https://github.com/Worgzz333r/WebDev-labs/tree/lab-02]
+Рівень складності: [3]
 
-## 1. Мета роботи
+## Реалізований функціонал
 
-Реалізувати аутентифікацію та авторизацію користувачів, безпечне зберігання паролів і керування токенами; розширити серверний застосунок файловим сервісом, пошуком, фільтрацією та пагінацією; створити документацію API.
-
-## 2. Стек
-
-Node.js, Express 5, PostgreSQL, Prisma ORM 7, zod (валідація), argon2 (хешування), jsonwebtoken, multer 2.x, helmet, cors, express-rate-limit, swagger-jsdoc + swagger-ui-express, node:test + supertest.
-
-## 3. Виконані завдання
+Предметна область: система обліку відвідуваності студентів. Стек: Node.js, Express 5, PostgreSQL, Prisma 7, zod, argon2, jsonwebtoken, multer 2.x, helmet, cors, express-rate-limit, swagger-jsdoc + swagger-ui-express, node:test + supertest. Інструкція із запуску та змінні середовища описані в `README.md`.
 
 ### Рівень 1
 
-| Завдання | Реалізація |
-|---|---|
-| Реєстрація з валідацією | `POST /api/auth/register`, схема `registerSchema` (zod): email, пароль 8–128 символів, `fullName` |
-| Argon2id | `src/utils/password.js`, `argon2.hash(..., { type: argon2.argon2id })` |
-| JWT-аутентифікація | `src/utils/jwt.js`: access-токен (`JWT_SECRET`) та refresh-токен (`REFRESH_TOKEN_SECRET`) |
-| Middleware аутентифікації | `src/middleware/auth.js`: перевіряє `Authorization: Bearer ...`, кладе дані в `req.user` |
-| Ролі | `ADMIN`, `TEACHER`, `STUDENT` (enum `Role` у Prisma) |
-| Middleware авторизації | `src/middleware/authorize.js`: `authorize('ADMIN', 'TEACHER')`, відповідь 403 за браку прав |
-| Пагінація | `src/utils/query.js`: `page`, `limit` (максимум 100), відповідь з `total`, `totalPages`, `hasMore` |
-| Swagger | `src/config/swagger.js`, документація за адресою `/api-docs` |
+- Реєстрація з валідацією (`POST /api/auth/register`, zod-схема: email, пароль 8–128 символів, `fullName`). Публічна реєстрація завжди створює `STUDENT`, поле `role` із запиту ігнорується.
+- Хешування паролів Argon2id (`src/utils/password.js`).
+- JWT-аутентифікація: access-токен і refresh-токен із різними секретами (`src/utils/jwt.js`).
+- Middleware аутентифікації `authenticate` (`src/middleware/auth.js`).
+- Ролі `ADMIN`, `TEACHER`, `STUDENT` (enum `Role` у Prisma).
+- Middleware авторизації `authorize(...ролі)` (`src/middleware/authorize.js`): 401 без автентифікації, 403 за браку прав.
+- Пагінація (`src/utils/query.js`): `page`, `limit` (максимум 100), у відповіді `total`, `totalPages`, `hasMore`.
+- Swagger: `/api-docs`, описано всі ендпоінти зі схемами, прикладами та кодами помилок.
 
 ### Рівень 2
 
-| Завдання | Реалізація |
-|---|---|
-| Файловий сервіс | `POST /api/files/upload`, `GET /api/files/:id`, `DELETE /api/files/:id` |
-| Валідація файлів | дозволені `jpeg`, `png`, `gif`, `pdf`; MIME-тип і розширення мають збігатися; ліміт розміру 5 МБ (`MAX_FILE_SIZE`); один файл за запит; ім'я на диску генерується сервером |
-| Пошук | `search` у пар (за темою), предметів (за назвою), відвідуваності (за ПІБ студента) |
-| Фільтрація | пари: `subjectId`, `groupId`, `teacherId`, `dateFrom`, `dateTo`; відвідуваність: `lessonId`, `studentId`, `status`, `dateFrom`, `dateTo` |
-| Оновлення й видалення файлів | видалення з диску та БД; доступ лише власнику або `ADMIN` |
-| Зміна пароля | `POST /api/auth/change-password`, після зміни всі refresh-токени користувача відкликаються |
-| Refresh-токени з відкликанням | у БД зберігається SHA-256 хеш токена (`RefreshToken`), ротація при кожному `refresh`, `logout` відкликає токен |
-| Тести | `tests/auth.test.js`, 13 тестів (ще 21 у `tests/features.test.js`, див. розділ 8) |
+- Файловий сервіс: `POST /api/files/upload`, `GET /api/files/:id`, `PUT /api/files/:id`, `DELETE /api/files/:id`.
+- Валідація файлів: дозволені `jpeg`, `png`, `gif`, `pdf`; MIME-тип і розширення мають збігатися; ліміт розміру 5 МБ (`MAX_FILE_SIZE`); ім'я на диску генерується сервером.
+- Оновлення файлу (`PUT /api/files/:id`): заміна вмісту з тією ж валідацією та/або перейменування; старий файл видаляється з диска; доступ лише власнику або `ADMIN`.
+- Пошук: `search` для пар (за темою), предметів (за назвою), користувачів (ПІБ, email), відвідуваності (ПІБ студента).
+- Фільтрація: пари (`subjectId`, `groupId`, `teacherId`, `dateFrom`, `dateTo`), відвідуваність (`lessonId`, `studentId`, `status`, `dateFrom`, `dateTo`), користувачі (`role`, `groupId`); сортування за білим списком полів.
+- Зміна пароля (`POST /api/auth/change-password`): після зміни всі refresh-токени користувача відкликаються.
+- Refresh-токени з відкликанням: у БД лежить лише SHA-256 хеш, при кожному `refresh` відбувається ротація, `logout` відкликає токен, повторне використання відкликаного токена скасовує всі токени користувача.
+- Автотести: `tests/auth.test.js` (13) і `tests/features.test.js` (29), разом 42.
 
-### Рівень 3 (частково)
+### Рівень 3
 
-| Завдання | Реалізація |
-|---|---|
-| Rate limiting | `express-rate-limit` на `/api/`: 100 запитів за 15 хвилин з однієї IP (налаштовується `RATE_LIMIT_MAX`) |
-| Захист заголовків і CORS | `helmet`, `cors` з origin із `FRONTEND_URL` |
-| Двофакторна аутентифікація | TOTP за RFC 6238 (`src/utils/totp.js`, без зовнішніх залежностей): `POST /api/auth/2fa/setup`, `/enable`, `/disable`; `login` приймає поле `code`; вимкнення потребує пароль і код |
-| Логування дій користувачів | модель `AuditLog`, `src/utils/audit.js`; записуються входи (у т.ч. невдалі), вихід, зміна пароля, 2FA, операції з файлами та відвідуваністю; перегляд `GET /api/audit-logs` (лише `ADMIN`) з пагінацією та фільтрами |
-| Завантаження кількох файлів | `POST /api/files/upload-multiple`, до `MAX_FILES` (5) файлів; усе або нічого: у разі помилки жоден файл не зберігається |
+- Двофакторна аутентифікація (TOTP, RFC 6238, без зовнішніх залежностей, `src/utils/totp.js`): `POST /api/auth/2fa/setup`, `/enable`, `/disable`; `login` приймає поле `code`; вимкнення потребує пароль і код.
+- Логування дій користувачів: модель `AuditLog`, `src/utils/audit.js`; записуються входи (у т.ч. невдалі), вихід, зміна пароля, 2FA, операції з файлами та відвідуваністю; перегляд `GET /api/audit-logs` (лише `ADMIN`) з пагінацією та фільтрами.
+- Rate limiting: загальний ліміт на `/api/` (100 запитів за 15 хвилин) і окремий ліміт невдалих спроб на `/auth/login`, `/refresh`, `/change-password`, `/2fa/*` (20 за 15 хвилин, успішні запити ліміт не витрачають).
+- Завантаження кількох файлів: `POST /api/files/upload-multiple`, до 5 файлів, «усе або нічого».
+- Також: `helmet`, CORS з origin із `FRONTEND_URL`.
+- Не виконано: відновлення пароля через email, вхід через OAuth, деталізована система дозволів.
 
-## 4. Структура проєкту
-
-```
-lab-02/
-├── prisma/            # схема та міграції
-├── scripts/           # create-admin.js
-├── src/
-│   ├── config/        # swagger.js
-│   ├── controllers/
-│   ├── middleware/    # auth, authorize, upload
-│   ├── routes/
-│   ├── utils/         # jwt, password, totp, audit, query, schemas, validate, errorHandler
-│   ├── app.js
-│   └── server.js
-├── tests/             # auth.test.js, features.test.js
-├── reports/
-└── requests.http      # приклади запитів
-```
-
-## 5. Модель даних
-
-До моделей лабораторної №1 додано:
-
-- `User.password`, `User.role`;
-- `File` (`filename`, `originalName`, `mimetype`, `size`, `path`, `uploadedBy`) і зв'язок `Document` ↔ `File`;
-- `RefreshToken` (`tokenHash`, `userId`, `expiresAt`, `revokedAt`).
-
-Міграції: `20261029125552_init`, `20261101162627_add_auth_and_files`.
-
-## 6. Матриця доступу
+### Матриця доступу
 
 | Ресурс | Операція | Ролі |
 |---|---|---|
@@ -94,46 +52,148 @@ lab-02/
 | `/users` | створення, зміна, видалення | `ADMIN` |
 | `/lessons` | читання | будь-який автентифікований |
 | `/lessons` | створення, зміна, видалення | `ADMIN`, `TEACHER` |
-| `/attendance` | читання | усі ролі |
+| `/attendance` | читання | усі ролі (`STUDENT` бачить лише свої записи) |
 | `/attendance` | створення, зміна, видалення | `ADMIN`, `TEACHER` |
-| `/attendance/:id/document` | прикріпити довідку | `STUDENT` |
+| `/attendance/:id/document` | прикріпити довідку | `STUDENT` (лише до власного запису) |
 | `/files/:id` | перегляд | власник, `ADMIN`, `TEACHER` |
-| `/files/:id` | видалення | власник, `ADMIN` |
+| `/files/:id` | оновлення, видалення | власник, `ADMIN` |
 | `/audit-logs` | читання журналу | `ADMIN` |
 
-## 7. Безпека
+### Безпека
 
-- Паролі хешуються Argon2id, сіль зберігається всередині хеша.
-- Публічна реєстрація завжди створює `STUDENT`: поле `role` із тіла запиту ігнорується, тому підвищити собі права неможливо. Адміністратора створює скрипт `npm run seed:admin`.
-- Однакова відповідь 401 для неіснуючого email і хибного пароля, щоб не розкривати наявність облікового запису.
-- Refresh-токени зберігаються лише у вигляді хеша; повторне використання відкликаного токена скасовує всі токени користувача.
-- Поле `password` ніколи не повертається клієнту; секрет 2FA також не потрапляє у відповіді API.
-- Двофакторна аутентифікація (TOTP): код дійсний 30 секунд, порівняння за сталий час, вимкнення потребує пароль і код.
-- Журнал дій: невдалі входи та повторне використання відкликаного refresh-токена фіксуються окремо; паролі й токени в журнал не потрапляють.
+- Паролі хешуються Argon2id, сіль зберігається всередині хеша; `password` і секрет 2FA не повертаються клієнту.
+- Однакова відповідь 401 для неіснуючого email і хибного пароля.
+- Refresh-токени зберігаються лише як хеш; повторне використання відкликаного токена скасовує всі токени користувача.
+- Зміна пароля або ролі адміном відкликає refresh-токени користувача (вже виданий access-токен діє до 15 хвилин).
 - Сортування лише за білим списком полів, `limit` обмежений, `id` у маршрутах валідуються.
 - Для файлів перевіряються MIME-тип, розширення та розмір; оригінальне ім'я не використовується як шлях.
-- Секрети та параметри лежать у `.env`, який виключено з git.
+- Секрети лежать у `.env`, який виключено з git; шаблон у `.env.example`.
 
-## 8. Тестування
+### Тестування
 
-Команда: `npm test` (`node --test`, бібліотека `supertest`, реальна БД PostgreSQL).
+Команда `npm test` (`node --test`, `supertest`, реальна БД PostgreSQL). Покрито: реєстрацію, вхід, ролі й 401/403, ротацію та відкликання refresh-токенів, зміну пароля, файли (завантаження, відхилення `.exe` і завеликого файлу, оновлення, видалення, права доступу), пагінацію, пошук, сортування, журнал дій, 2FA, завантаження кількох файлів, відкликання сесій при зміні ролі адміном. Результат: 42 тести, 42 пройдено, 0 помилок. CRUD груп, предметів, пар і користувачів перевірявся вручну запитами з `requests.http`.
 
-| Набір | Перевірка |
-|---|---|
-| Authentication API | реєстрація; дублікат email (409); короткий пароль (400); ігнорування `role` з тіла; вхід; хибний пароль (401); доступ без токена (401) і з токеном (200); `STUDENT` не створює групу (403); ротація refresh-токена та реакція на повторне використання; `logout`; зміна пароля |
-| Files API | без токена 401; завантаження PNG; відхилення `.exe`; відхилення файлу понад 5 МБ; отримання та видалення файлу |
-| Ролі, пагінація, пошук, сортування | 401 без токена; `STUDENT` не створює предмет і не бачить користувачів (403); сторінки, `totalPages`, `hasMore`; обмеження `limit`; пошук без урахування регістру; сортування `asc`/`desc` і ігнорування невідомого поля |
-| Журнал дій | невдалий вхід і реєстрація записуються; фільтри `action`, `userId`; `STUDENT` отримує 403; некоректні фільтри дають 400 |
-| Двофакторна аутентифікація | повний цикл: `setup`, `enable` (хибний і правильний код), вхід без коду (401), з хибним і правильним кодом, відсутність секрету у відповіді, `disable` |
-| Завантаження кількох файлів | 401 без токена, 400 без файлів, успішне завантаження двох PNG, відхилення пакета з `.exe` без збереження решти, перевищення ліміту кількості файлів |
+## Ключові фрагменти коду
 
-Результат: 34 тести, 34 пройдено, 0 помилок.
+Хешування й перевірка пароля (Argon2id), `src/utils/password.js`:
 
-![Результат npm test](screenshots/tests.png)
+```javascript
+export function hashPassword(password) {
+  return argon2.hash(password, { type: argon2.argon2id });
+}
 
-## 9. Документація API
+export function comparePassword(password, hash) {
+  return argon2.verify(hash, password);
+}
+```
 
-Swagger UI доступний за адресою `http://localhost:3000/api-docs`. Описано всі ендпоінти з прикладами тіл запитів і відповідей, схеми безпеки (Bearer JWT) та коди помилок. Також є файл `requests.http` з готовими запитами.
+Middleware авторизації за ролями, `src/middleware/authorize.js`:
+
+```javascript
+export function authorize(...allowedRoles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Необхідна аутентифікація' });
+    }
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Недостатньо прав для виконання цієї операції' });
+    }
+    next();
+  };
+}
+```
+
+Ротація refresh-токена та виявлення повторного використання, `src/controllers/authController.js`:
+
+```javascript
+if (!stored || stored.revokedAt) {
+  // Повторне використання відкликаного токена: відкликаємо всі токени користувача
+  if (stored) {
+    await prisma.refreshToken.updateMany({
+      where: { userId: stored.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await logAction(req, 'REFRESH_TOKEN_REUSE', { userId: stored.userId });
+  }
+  return res.status(401).json({ error: 'Недійсний refresh токен' });
+}
+
+// Ротація: старий токен відкликаємо, видаємо нову пару
+await prisma.refreshToken.update({
+  where: { id: stored.id },
+  data: { revokedAt: new Date() },
+});
+res.json({ tokens: await issueTokens(stored.user) });
+```
+
+Валідація файлів: MIME-тип і розширення мають збігатися, `src/middleware/upload.js`:
+
+```javascript
+const allowedTypes = new Map([
+  ['image/jpeg', ['.jpg', '.jpeg']],
+  ['image/png', ['.png']],
+  ['image/gif', ['.gif']],
+  ['application/pdf', ['.pdf']],
+]);
+
+const fileFilter = (req, file, cb) => {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedTypes.get(file.mimetype)?.includes(ext)) {
+    cb(null, true);
+  } else {
+    const error = new Error('Непідтримуваний тип файлу');
+    error.status = 400;
+    cb(error);
+  }
+};
+```
+
+Окремий ліміт невдалих спроб на auth-маршрутах, `src/app.js`:
+
+```javascript
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
+  skipSuccessfulRequests: true,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Забагато невдалих спроб, спробуйте пізніше' },
+});
+app.use(
+  ['/api/auth/login', '/api/auth/refresh', '/api/auth/change-password', '/api/auth/2fa'],
+  authLimiter,
+);
+```
+
+Перевірка TOTP-коду зі зсувом ±30 с і порівнянням за сталий час, `src/utils/totp.js`:
+
+```javascript
+export function verifyTotp(secret, code, time = Date.now(), window = 1) {
+  if (typeof code !== 'string' || !/^\d{6}$/.test(code)) return false;
+  const key = base32Decode(secret);
+  const counter = Math.floor(time / 1000 / STEP_SECONDS);
+  const given = Buffer.from(code);
+
+  for (let shift = -window; shift <= window; shift += 1) {
+    if (timingSafeEqual(Buffer.from(hotp(key, counter + shift)), given)) return true;
+  }
+  return false;
+}
+```
+
+## Скріншоти
+
+Застосування міграцій:
+
+![Міграція 1](screenshots/migration.png)
+
+![Міграція 2](screenshots/migration2.png)
+
+![Міграція 3](screenshots/migration3.png)
+
+![Міграція журналу дій](screenshots/audit-migration.png)
+
+Swagger UI (`/api-docs`):
 
 ![Swagger UI, частина 1](screenshots/swagger-1.png)
 
@@ -141,40 +201,42 @@ Swagger UI доступний за адресою `http://localhost:3000/api-doc
 
 ![Swagger UI, схеми](screenshots/swagger-3.png)
 
-## 10. Запуск
+Реєстрація та вхід (відповідь із токенами):
 
-```bash
-npm install
-npx prisma migrate dev
-npm run seed:admin
-npm run dev
-```
+![Вхід](screenshots/login.png)
 
-Змінні середовища (`.env`):
+Відповідь 403 для `STUDENT`:
 
-| Змінна | Призначення |
-|---|---|
-| `PORT` | порт сервера |
-| `DATABASE_URL` | підключення до PostgreSQL |
-| `JWT_SECRET`, `JWT_EXPIRES_IN` | підпис і термін життя access-токена |
-| `REFRESH_TOKEN_SECRET`, `REFRESH_TOKEN_EXPIRES_IN` | підпис і термін життя refresh-токена |
-| `FRONTEND_URL` | дозволений origin для CORS |
-| `RATE_LIMIT_MAX` | ліміт запитів за 15 хвилин |
-| `UPLOAD_DIR`, `MAX_FILE_SIZE` | каталог та ліміт розміру файлів |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | дані адміністратора для `seed:admin` |
+![403 для STUDENT](screenshots/forbidden.png)
 
-## 11. Скріншоти
+Завантаження файлу:
 
-1. Застосування міграцій: `screenshots/migration.png`, `migration2.png`, `migration3.png`.
-2. Swagger UI: `screenshots/swagger-1.png`, `swagger-2.png`, `swagger-3.png`.
-3. Реєстрація та вхід (відповідь із токенами): `screenshots/login.png`.
-4. Відповідь 403 для `STUDENT`: `screenshots/forbidden.png`.
-5. Завантаження файлу та відхилення `.exe`: `screenshots/upload.png`.
-6. Результат `npm test`: `screenshots/tests.png`.
-7. Журнал дій (`GET /api/audit-logs`): `screenshots/audit.png`.
-8. Двофакторна аутентифікація: вхід без коду та з кодом: `screenshots/2fa.png`.
-9. Завантаження кількох файлів: `screenshots/multi-upload.png`.
+![Завантаження файлу](screenshots/upload.png)
 
-## 12. Висновки
+Оновлення файлу (`PUT /api/files/:id`):
 
-У ході роботи реалізовано повний цикл аутентифікації та авторизації: реєстрацію, вхід, пару access/refresh токенів із ротацією та відкликанням, рольову модель і захист маршрутів. Додано файловий сервіс із валідацією, пошук, фільтрацію й пагінацію, rate limiting, helmet та CORS. API задокументовано в Swagger і покрито автоматичними тестами. Реалізація відповідає вимогам рівнів 1 і 2. З рівня 3 виконано двофакторну аутентифікацію (TOTP), логування дій користувачів, завантаження кількох файлів, rate limiting, helmet і CORS.
+![Оновлення файлу](screenshots/file-update.png)
+
+Завантаження кількох файлів:
+
+![Завантаження кількох файлів](screenshots/multi-upload.png)
+
+Журнал дій (`GET /api/audit-logs`):
+
+![Журнал дій](screenshots/audit.png)
+
+Двофакторна аутентифікація (вхід без коду та з кодом):
+
+![2FA](screenshots/2fa-fail.png)
+![2FA](screenshots/2fa-success.png)
+
+Результат `npm test`:
+
+![Результат npm test](screenshots/tests-1.png)
+![Результат npm test](screenshots/tests-2.png)
+
+## Висновки
+
+Самооцінка: [5]
+
+Обґрунтування: [виконано всі завдання рівнів 1 і 2. З рівня 3 реалізовано чотири пункти з восьми: 2FA, журнал дій, rate limiting, завантаження кількох файлів. Паролі хешуються Argon2id, refresh-токени мають ротацію та відкликання, роботу покрито 42 автоматичними тестами, документація Swagger описує всі ендпоінти. Не реалізовано відновлення пароля через email, OAuth і детальну систему дозволів, а CRUD груп, предметів, пар і користувачів перевірявся вручну.]

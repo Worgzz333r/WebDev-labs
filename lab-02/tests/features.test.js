@@ -14,6 +14,9 @@ const users = {
   student: { email: 'feat-student@example.com', password: PASSWORD, fullName: 'Feat Student' },
   tfa: { email: 'feat-2fa@example.com', password: PASSWORD, fullName: 'Feat 2FA' },
   upload: { email: 'feat-upload@example.com', password: PASSWORD, fullName: 'Feat Upload' },
+  fileOwner: { email: 'feat-fowner@example.com', password: PASSWORD, fullName: 'File Owner' },
+  fileOther: { email: 'feat-fother@example.com', password: PASSWORD, fullName: 'File Other' },
+  fileAdmin: { email: 'feat-fadmin@example.com', password: PASSWORD, fullName: 'File Admin' },
 };
 
 const bearer = (token) => ({ Authorization: `Bearer ${token}` });
@@ -326,3 +329,127 @@ describe('Завантаження кількох файлів', () => {
     assert.equal(res.status, 400);
   });
 });
+
+describe('Оновлення файлу', () => {
+  let owner;
+  let other;
+  let admin;
+  let fileId;
+
+  const register = async (user) => (await request(app).post('/api/auth/register').send(user)).body.tokens.accessToken;
+
+  before(async () => {
+    await cleanup();
+    owner = bearer(await register(users.fileOwner));
+    other = bearer(await register(users.fileOther));
+    await register(users.fileAdmin);
+    await prisma.user.update({ where: { email: users.fileAdmin.email }, data: { role: 'ADMIN' } });
+    admin = bearer((await login(users.fileAdmin)).body.tokens.accessToken);
+
+    const res = await request(app)
+      .post('/api/files/upload')
+      .set(owner)
+      .attach('file', png, { filename: 'old.png', contentType: 'image/png' });
+    assert.equal(res.status, 201);
+    fileId = res.body.file.id;
+  });
+
+  after(async () => {
+    await request(app).delete(`/api/files/${fileId}`).set(owner);
+  });
+
+  test('без токена 401, без змін 400', async () => {
+    assert.equal((await request(app).put(`/api/files/${fileId}`)).status, 401);
+    assert.equal((await request(app).put(`/api/files/${fileId}`).set(owner)).status, 400);
+  });
+
+  test('чужий користувач не оновлює файл (403), неіснуючий файл 404', async () => {
+    const res = await request(app).put(`/api/files/${fileId}`).set(other).field('originalName', 'hack.png');
+    assert.equal(res.status, 403);
+    assert.equal((await request(app).put('/api/files/999999999').set(owner).field('originalName', 'x.png')).status, 404);
+  });
+
+  test('чужа заміна вмісту (403) не залишає «осиротілих» файлів на диску', async () => {
+    const before = await prisma.file.findUnique({ where: { id: fileId } });
+    const res = await request(app)
+      .put(`/api/files/${fileId}`)
+      .set(other)
+      .attach('file', png, { filename: 'evil.png', contentType: 'image/png' });
+    assert.equal(res.status, 403);
+    const after = await prisma.file.findUnique({ where: { id: fileId } });
+    assert.equal(after.path, before.path);
+  });
+
+  test('власник перейменовує файл', async () => {
+    const res = await request(app).put(`/api/files/${fileId}`).set(owner).field('originalName', '  dovidka.png  ');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.file.originalName, 'dovidka.png');
+  });
+
+  test('власник замінює вміст: шлях змінюється, старий файл видалено з диска', async () => {
+    const { existsSync } = await import('node:fs');
+    const before = await prisma.file.findUnique({ where: { id: fileId } });
+    assert.ok(existsSync(before.path));
+
+    const res = await request(app)
+      .put(`/api/files/${fileId}`)
+      .set(owner)
+      .attach('file', Buffer.concat([png, png]), { filename: 'new.png', contentType: 'image/png' });
+
+    assert.equal(res.status, 200);
+    assert.notEqual(res.body.file.path, before.path);
+    assert.equal(res.body.file.size, png.length * 2);
+    assert.equal(res.body.file.originalName, 'new.png');
+    assert.equal(existsSync(before.path), false);
+    assert.ok(existsSync(res.body.file.path));
+  });
+
+  test('заміна на недопустимий тип або завеликий файл дає 400, файл не змінюється', async () => {
+    const before = await prisma.file.findUnique({ where: { id: fileId } });
+
+    const exe = await request(app)
+      .put(`/api/files/${fileId}`)
+      .set(owner)
+      .attach('file', png, { filename: 'a.exe', contentType: 'application/x-msdownload' });
+    assert.equal(exe.status, 400);
+
+    const big = await request(app)
+      .put(`/api/files/${fileId}`)
+      .set(owner)
+      .attach('file', Buffer.alloc(5 * 1024 * 1024 + 1), { filename: 'b.png', contentType: 'image/png' });
+    assert.equal(big.status, 400);
+
+    const after = await prisma.file.findUnique({ where: { id: fileId } });
+    assert.equal(after.path, before.path);
+  });
+
+  test('ADMIN може оновити чужий файл, а зміна записується в журнал', async () => {
+    const res = await request(app).put(`/api/files/${fileId}`).set(admin).field('originalName', 'by-admin.png');
+    assert.equal(res.status, 200);
+
+    const logs = await request(app).get('/api/audit-logs?action=FILE_UPDATED').set(admin);
+    assert.equal(logs.status, 200);
+    assert.ok(logs.body.data.some((l) => l.entityId === fileId));
+  });
+});
+
+describe('Відкликання сесій при зміні ролі чи пароля адміном', () => {
+  test('PUT /api/users/:id відкликає refresh токени користувача', async () => {
+    await cleanup();
+    await request(app).post('/api/auth/register').send(users.fileAdmin);
+    await prisma.user.update({ where: { email: users.fileAdmin.email }, data: { role: 'ADMIN' } });
+    const adminToken = (await login(users.fileAdmin)).body.tokens.accessToken;
+
+    const reg = await request(app).post('/api/auth/register').send(users.fileOther);
+    const { refreshToken } = reg.body.tokens;
+
+    const res = await request(app)
+      .put(`/api/users/${reg.body.user.id}`)
+      .set(bearer(adminToken))
+      .send({ role: 'TEACHER' });
+    assert.equal(res.status, 200);
+
+    assert.equal((await request(app).post('/api/auth/refresh').send({ refreshToken })).status, 401);
+  });
+});
+

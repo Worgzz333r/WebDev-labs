@@ -97,6 +97,58 @@ export const getFile = async (req, res) => {
   res.sendFile(path.resolve(file.path));
 };
 
+// Оновлення файлу: можна замінити вміст (поле file), перейменувати (originalName) або і те, і інше.
+// Мінімум одна зміна обов'язкова. Старий файл з диска видаляється лише після успішного запису в БД.
+export const updateFile = async (req, res) => {
+  const cleanupNew = () => (req.file ? fs.unlink(req.file.path).catch(() => {}) : undefined);
+
+  const rawName = req.body?.originalName;
+  const newName = typeof rawName === 'string' ? rawName.trim() : undefined;
+
+  if (!req.file && !newName) {
+    return res.status(400).json({ error: 'Передайте новий файл (поле file) або нове ім\'я (originalName)' });
+  }
+  if (newName !== undefined && (newName.length < 1 || newName.length > 255)) {
+    await cleanupNew();
+    return res.status(400).json({ error: 'originalName має містити від 1 до 255 символів' });
+  }
+
+  const file = await findAccessible(req, res, { ownerOrAdminOnly: true });
+  if (!file) {
+    await cleanupNew();
+    return;
+  }
+
+  const data = {};
+  if (req.file) {
+    data.filename = req.file.filename;
+    data.mimetype = req.file.mimetype;
+    data.size = req.file.size;
+    data.path = req.file.path;
+    data.originalName = newName || req.file.originalname;
+  } else {
+    data.originalName = newName;
+  }
+
+  let updated;
+  try {
+    updated = await prisma.file.update({ where: { id: file.id }, data });
+  } catch (error) {
+    await cleanupNew();
+    throw error;
+  }
+
+  if (req.file) await fs.unlink(file.path).catch(() => {}); // старий вміст більше не потрібен
+
+  await logAction(req, 'FILE_UPDATED', {
+    entity: 'File',
+    entityId: file.id,
+    details: { replacedContent: Boolean(req.file), originalName: updated.originalName },
+  });
+
+  res.json({ message: 'Файл успішно оновлено', file: updated });
+};
+
 export const deleteFile = async (req, res) => {
   const file = await findAccessible(req, res, { ownerOrAdminOnly: true });
   if (!file) return;

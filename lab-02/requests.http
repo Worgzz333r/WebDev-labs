@@ -462,6 +462,40 @@ Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
 DELETE {{host}}/api/files/{{upload.response.body.file.id}}
 Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
 
+### Власник перейменовує свій файл (очікуємо 200)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="originalName"
+
+dovidka.png
+------Boundary--
+
+### Власник замінює вміст файлу (очікуємо 200, старий файл зникає з диска)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+### Інша студентка оновлює чужий файл (очікуємо 403)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="originalName"
+
+hack.png
+------Boundary--
+
 ### Власник видаляє свій файл (очікуємо 200)
 DELETE {{host}}/api/files/{{upload.response.body.file.id}}
 Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}

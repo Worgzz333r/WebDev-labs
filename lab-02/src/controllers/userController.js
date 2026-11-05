@@ -1,5 +1,6 @@
 import { hashPassword } from '../utils/password.js';
 import prisma from '../utils/prisma.js';
+import { logAction } from '../utils/audit.js';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 
 const USER_SORT_FIELDS = ['id', 'fullName', 'email', 'createdAt'];
@@ -75,6 +76,21 @@ export const update = async (req, res) => {
     data,
     select: publicFields,
   });
+
+  // Зміна пароля або ролі адміном: відкликаємо refresh токени, щоб старі сесії не зберегли доступ.
+  // Вже виданий access токен діє до завершення терміну (за замовчуванням 15 хвилин).
+  if (password || role) {
+    await prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await logAction(req, 'USER_SESSIONS_REVOKED', {
+      entity: 'User',
+      entityId: id,
+      details: { passwordChanged: Boolean(password), role: role ?? null },
+    });
+  }
+
   res.json(user);
 };
 
