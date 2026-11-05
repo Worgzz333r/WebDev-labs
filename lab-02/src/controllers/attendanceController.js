@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma.js';
+import { logAction } from '../utils/audit.js';
 import fs from 'node:fs/promises';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 
@@ -78,6 +79,11 @@ export const create = async (req, res) => {
     data: { lessonId, studentId, status, comment },
     include,
   });
+  await logAction(req, 'ATTENDANCE_CREATED', {
+    entity: 'Attendance',
+    entityId: record.id,
+    details: { lessonId, studentId, status: record.status },
+  });
   res.status(201).json(record);
 };
 
@@ -89,12 +95,18 @@ export const update = async (req, res) => {
     data: { status, comment },
     include,
   });
+  await logAction(req, 'ATTENDANCE_UPDATED', {
+    entity: 'Attendance',
+    entityId: id,
+    details: { status: record.status },
+  });
   res.json(record);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.attendance.delete({ where: { id } });
+  await logAction(req, 'ATTENDANCE_DELETED', { entity: 'Attendance', entityId: id });
   res.status(204).send();
 };
 
@@ -142,10 +154,10 @@ export const attachDocument = async (req, res) => {
       },
       include: { file: true },
     });
+    await logAction(req, 'DOCUMENT_ATTACHED', { entity: 'Attendance', entityId: id });
     res.status(201).json(document);
   } catch (error) {
     await cleanup();
     throw error;
   }
 };
-

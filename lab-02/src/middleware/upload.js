@@ -3,6 +3,8 @@ import path from 'node:path';
 import multer from 'multer';
 
 const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+// Максимум файлів в одному запиті (для /upload-multiple)
+export const MAX_FILES = Number(process.env.MAX_FILES) || 5;
 fs.mkdirSync(uploadDir, { recursive: true });
 
 // Дозволені типи: MIME-тип і розширення мають збігатися
@@ -36,5 +38,5 @@ const fileFilter = (req, file, cb) => {
 export const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, files: 1 },
+  limits: { fileSize: Number(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, files: MAX_FILES },
 });

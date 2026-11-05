@@ -10,6 +10,7 @@ import attendanceRoutes from './routes/attendanceRoutes.js';
 import errorHandler from './utils/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import fileRoutes from './routes/fileRoutes.js';
+import auditRoutes from './routes/auditRoutes.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 
@@ -36,6 +37,7 @@ app.use('/api/lessons', lessonRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/audit-logs', auditRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/api/health', (req, res) => {

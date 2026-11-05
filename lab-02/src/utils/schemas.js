@@ -49,6 +49,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().trim().email('Invalid email'),
   password: z.string().min(1, 'Password is required'),
+  code: z.string().regex(/^\d{6}$/, 'Code must be 6 digits').optional(),
 });
 
 export const refreshSchema = z.object({
@@ -58,4 +59,13 @@ export const refreshSchema = z.object({
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(8, 'Password must be at least 8 characters').max(128),
+});
+
+const twoFactorCode = z.string().regex(/^\d{6}$/, 'Code must be 6 digits');
+
+export const twoFactorCodeSchema = z.object({ code: twoFactorCode });
+
+export const disableTwoFactorSchema = z.object({
+  password: z.string().min(1, 'Password is required'),
+  code: twoFactorCode,
 });

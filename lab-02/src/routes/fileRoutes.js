@@ -1,7 +1,7 @@
 import express from 'express';
 import * as controller from '../controllers/fileController.js';
 import { authenticate } from '../middleware/auth.js';
-import { upload } from '../middleware/upload.js';
+import { upload, MAX_FILES } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -40,6 +40,35 @@ router.param('id', (req, res, next, value) => {
  *         description: Не авторизовано
  */
 router.post('/upload', authenticate, upload.single('file'), controller.uploadFile);
+
+/**
+ * @openapi
+ * /api/files/upload-multiple:
+ *   post:
+ *     tags: [Files]
+ *     summary: Завантажити кілька файлів одним запитом (до MAX_FILES, за замовчуванням 5)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [files]
+ *             properties:
+ *               files:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *     responses:
+ *       201:
+ *         description: Файли завантажено, повертається { message, files }
+ *       400:
+ *         description: Файли не надано, непідтримуваний тип, завеликий файл або забагато файлів
+ *       401:
+ *         description: Не авторизовано
+ */
+router.post('/upload-multiple', authenticate, upload.array('files', MAX_FILES), controller.uploadFiles);
 
 /**
  * @openapi

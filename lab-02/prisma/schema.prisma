@@ -33,6 +33,8 @@ model User {
   password  String
   fullName  String
   role      Role      @default(STUDENT)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
   createdAt DateTime  @default(now())
 
   groupId Int?
@@ -43,6 +45,7 @@ model User {
   attendance Attendance[]
   files         File[]
   refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
 }
 
 model Subject {
@@ -130,4 +133,21 @@ model RefreshToken {
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entity    String?
+  entityId  Int?
+  userId    Int?
+  ip        String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }

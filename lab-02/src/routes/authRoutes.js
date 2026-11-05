@@ -5,6 +5,9 @@ import {
   refresh,
   logout,
   changePassword,
+  setupTwoFactor,
+  enableTwoFactor,
+  disableTwoFactor,
 } from '../controllers/authController.js';
 import validate from '../utils/validate.js';
 import { authenticate } from '../middleware/auth.js';
@@ -13,6 +16,8 @@ import {
   loginSchema,
   refreshSchema,
   changePasswordSchema,
+  twoFactorCodeSchema,
+  disableTwoFactorSchema,
 } from '../utils/schemas.js';
 
 
@@ -76,6 +81,10 @@ router.post('/register', validate(registerSchema), register);
  *             properties:
  *               email: { type: string, example: admin@example.com }
  *               password: { type: string, example: admin12345 }
+ *               code:
+ *                 type: string
+ *                 example: '123456'
+ *                 description: Код із застосунку-автентифікатора, обов'язковий якщо увімкнено 2FA
  *     responses:
  *       200:
  *         description: Успішний вхід
@@ -93,7 +102,7 @@ router.post('/register', validate(registerSchema), register);
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
  *       401:
- *         description: Невірний email або пароль
+ *         description: Невірний email або пароль, або потрібен/невірний код 2FA (у відповіді twoFactorRequired true)
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/Error' }
@@ -195,5 +204,96 @@ router.post('/logout', logout);
  *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/change-password', authenticate, validate(changePasswordSchema), changePassword);
+
+/**
+ * @openapi
+ * /api/auth/2fa/setup:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Почати налаштування 2FA (повертає секрет і otpauth URL для QR-коду)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Секрет згенеровано, 2FA ще не ввімкнено
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 secret: { type: string, example: JBSWY3DPEHPK3PXP }
+ *                 otpauthUrl: { type: string }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       409:
+ *         description: 2FA вже ввімкнено
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
+router.post('/2fa/setup', authenticate, setupTwoFactor);
+
+/**
+ * @openapi
+ * /api/auth/2fa/enable:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Підтвердити налаштування кодом і ввімкнути 2FA
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [code]
+ *             properties:
+ *               code: { type: string, example: '123456' }
+ *     responses:
+ *       200:
+ *         description: 2FA увімкнено
+ *       400:
+ *         description: Невірний код або не виконано /2fa/setup
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ *       409:
+ *         description: 2FA вже ввімкнено
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ */
+router.post('/2fa/enable', authenticate, validate(twoFactorCodeSchema), enableTwoFactor);
+
+/**
+ * @openapi
+ * /api/auth/2fa/disable:
+ *   post:
+ *     tags: [Auth]
+ *     summary: Вимкнути 2FA (потрібні пароль і код)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password, code]
+ *             properties:
+ *               password: { type: string }
+ *               code: { type: string, example: '123456' }
+ *     responses:
+ *       200:
+ *         description: 2FA вимкнено
+ *       400:
+ *         description: Невірний пароль або код, або 2FA не ввімкнено
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
+ *       401: { $ref: '#/components/responses/Unauthorized' }
+ */
+router.post('/2fa/disable', authenticate, validate(disableTwoFactorSchema), disableTwoFactor);
 
 export default router;
