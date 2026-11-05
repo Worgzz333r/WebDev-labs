@@ -1,5 +1,9 @@
 import { hashPassword } from '../utils/password.js';
 import prisma from '../utils/prisma.js';
+import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
+
+const USER_SORT_FIELDS = ['id', 'fullName', 'email', 'createdAt'];
+const ROLES = ['ADMIN', 'TEACHER', 'STUDENT'];
 
 // які поля віддаємо клієнту (без password)
 const publicFields = {
@@ -12,8 +16,33 @@ const publicFields = {
 };
 
 export const getAll = async (req, res) => {
-  const users = await prisma.user.findMany({ select: publicFields });
-  res.json(users);
+  const { search, role, groupId } = req.query;
+
+  const where = {};
+  if (search) {
+    where.OR = [
+      { fullName: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+    ];
+  }
+  if (ROLES.includes(role)) where.role = role;
+  if (toId(groupId)) where.groupId = toId(groupId);
+
+  const pagination = parsePagination(req.query);
+  const orderBy = parseSort(req.query, USER_SORT_FIELDS, 'id', 'asc');
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      orderBy,
+      skip: pagination.skip,
+      take: pagination.limit,
+      select: publicFields,
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  res.json({ data: users, pagination: buildPagination(pagination, total, users.length) });
 };
 
 export const getOne = async (req, res) => {

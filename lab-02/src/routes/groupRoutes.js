@@ -19,17 +19,32 @@ router.param('id', (req, res, next, value) => {
  * /api/groups:
  *   get:
  *     tags: [Groups]
- *     summary: Список груп (усі авторизовані)
+ *     summary: Список груп з пошуком і пагінацією (усі авторизовані)
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/Page'
+ *       - $ref: '#/components/parameters/Limit'
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Пошук за назвою групи (без урахування регістру)
+ *       - in: query
+ *         name: sortBy
+ *         schema: { type: string, enum: [id, name], default: name }
+ *       - $ref: '#/components/parameters/Order'
  *     responses:
  *       200:
- *         description: Список груп
+ *         description: Сторінка груп
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items: { $ref: '#/components/schemas/Group' }
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/Group' }
+ *                 pagination: { $ref: '#/components/schemas/Pagination' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  */
 router.get('/', authenticate, controller.getAll);

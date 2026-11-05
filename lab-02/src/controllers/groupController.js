@@ -1,11 +1,30 @@
 import prisma from '../utils/prisma.js';
+import { parsePagination, parseSort, buildPagination } from '../utils/query.js';
+
+const GROUP_SORT_FIELDS = ['id', 'name'];
 
 // GET /api/groups
 export const getAll = async (req, res) => {
-  const groups = await prisma.group.findMany({
-    include: { _count: { select: { students: true } } },
-  });
-  res.json(groups);
+  const { search } = req.query;
+
+  const where = {};
+  if (search) where.name = { contains: search, mode: 'insensitive' };
+
+  const pagination = parsePagination(req.query);
+  const orderBy = parseSort(req.query, GROUP_SORT_FIELDS, 'name', 'asc');
+
+  const [groups, total] = await Promise.all([
+    prisma.group.findMany({
+      where,
+      orderBy,
+      skip: pagination.skip,
+      take: pagination.limit,
+      include: { _count: { select: { students: true } } },
+    }),
+    prisma.group.count({ where }),
+  ]);
+
+  res.json({ data: groups, pagination: buildPagination(pagination, total, groups.length) });
 };
 
 // GET /api/groups/:id

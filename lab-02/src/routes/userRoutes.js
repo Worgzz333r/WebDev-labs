@@ -19,17 +19,38 @@ router.param('id', (req, res, next, value) => {
  * /api/users:
  *   get:
  *     tags: [Users]
- *     summary: Список користувачів (ADMIN, TEACHER)
+ *     summary: Список користувачів з пошуком, фільтрацією та пагінацією (ADMIN, TEACHER)
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - $ref: '#/components/parameters/Page'
+ *       - $ref: '#/components/parameters/Limit'
+ *       - in: query
+ *         name: search
+ *         schema: { type: string }
+ *         description: Пошук за ПІБ або email (без урахування регістру)
+ *       - in: query
+ *         name: role
+ *         schema: { type: string, enum: [ADMIN, TEACHER, STUDENT] }
+ *       - in: query
+ *         name: groupId
+ *         schema: { type: integer }
+ *       - in: query
+ *         name: sortBy
+ *         schema: { type: string, enum: [id, fullName, email, createdAt], default: id }
+ *       - $ref: '#/components/parameters/Order'
  *     responses:
  *       200:
- *         description: Список користувачів без паролів
+ *         description: Сторінка користувачів без паролів
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items: { $ref: '#/components/schemas/User' }
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items: { $ref: '#/components/schemas/User' }
+ *                 pagination: { $ref: '#/components/schemas/Pagination' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  */

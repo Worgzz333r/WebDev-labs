@@ -1,29 +1,49 @@
 # Система обліку відвідуваності студентів (Backend API)
 
-Лабораторна робота №1: backend на Node.js + Express.js + PostgreSQL (Prisma ORM).
+Лабораторна робота №2: аутентифікація, авторизація та розширений функціонал. Backend на Node.js + Express 5 + PostgreSQL (Prisma ORM). Розвиває проєкт з лабораторної №1 (CRUD для груп, предметів, користувачів, пар і відвідуваності).
+
+## Що нового порівняно з лабораторною №1
+
+- реєстрація та вхід, паролі хешуються **Argon2id**
+- **JWT**: короткоживучий access токен і refresh токен із ротацією та відкликанням
+- ролі `ADMIN`, `TEACHER`, `STUDENT` і middleware авторизації для кожного маршруту
+- файловий сервіс (Multer 2.x) і довідки до відміток відвідуваності
+- пагінація, пошук, фільтри та сортування у списках
+- зміна пароля
+- документація **Swagger** (`/api-docs`)
+- захист: `helmet`, CORS, rate limiting
+- автотести (`node:test` + `supertest`)
 
 ## Стек
 
-- Node.js, Express 5
-- PostgreSQL 18
-- Prisma ORM 7
-- zod (валідація), bcrypt (хешування паролів), dotenv, cors
+- Node.js 24, Express 5
+- PostgreSQL, Prisma ORM 7 (`@prisma/adapter-pg`)
+- zod (валідація), argon2 (хешування паролів), jsonwebtoken
+- multer 2.x (файли), swagger-jsdoc + swagger-ui-express
+- helmet, cors, express-rate-limit
+- тести: вбудований `node:test`, supertest
 
 ## Структура проєкту
 
 ```
-lab-01/
+lab-02/
 ├── prisma/
 │   ├── schema.prisma        # схема БД
 │   └── migrations/          # міграції
+├── scripts/
+│   └── create-admin.js      # створення першого адміністратора
 ├── src/
-│   ├── app.js               # точка входу
+│   ├── app.js               # збірка застосунку (без listen, для тестів)
+│   ├── server.js            # запуск сервера
+│   ├── config/swagger.js    # налаштування Swagger
 │   ├── controllers/         # логіка обробки запитів
-│   ├── routes/              # маршрути
-│   └── utils/               # prisma-клієнт, валідація, обробник помилок
-├── reports/                 # звіт
-├── prisma.config.ts
-└── .env                     # змінні середовища (не в git)
+│   ├── middleware/          # auth, authorize, upload
+│   ├── routes/              # маршрути та Swagger-анотації
+│   └── utils/               # jwt, password, prisma, query, schemas, validate, errorHandler
+├── tests/auth.test.js       # автотести
+├── requests.http            # ручні запити (REST Client)
+├── reports/                 # звіт і скріншоти
+└── prisma.config.ts
 ```
 
 ## Запуск
@@ -33,204 +53,238 @@ lab-01/
    npm install
    ```
 2. Створити базу даних `attendance` у PostgreSQL.
-3. Створити файл `.env` у корені `lab-01`:
+3. Скопіювати `.env.example` у `.env` і заповнити значення. Секрети згенерувати командою:
+   ```bash
+   node -p "require('node:crypto').randomBytes(32).toString('hex')"
    ```
-   PORT=3000
-   DATABASE_URL="postgresql://postgres:<пароль>@localhost:5432/attendance"
-   ```
-4. Застосувати міграції:
+4. Застосувати міграції та згенерувати клієнт Prisma:
    ```bash
    npx prisma migrate dev
+   npx prisma generate
    ```
-5. Запустити сервер:
+5. Створити першого адміністратора (реєстрація завжди створює роль `STUDENT`):
    ```bash
-   npm run dev      # з автоперезапуском (nodemon)
+   npm run seed:admin
+   ```
+6. Запустити сервер:
+   ```bash
+   npm run dev      # з автоперезапуском (node --watch)
    npm start        # звичайний запуск
    ```
 
-Сервер буде доступний на `http://localhost:3000`. Перевірка: `GET /api/health` → `{"status":"ok"}`.
+Сервер: `http://localhost:3000`. Перевірка: `GET /api/health` → `{"status":"ok"}`. Документація API: `http://localhost:3000/api-docs`.
 
 ## Змінні середовища
 
 | Змінна | Опис | Приклад |
 |---|---|---|
-| `PORT` | порт Express-сервера | `3000` |
+| `PORT` | порт сервера | `3000` |
 | `DATABASE_URL` | рядок підключення до PostgreSQL | `postgresql://postgres:pass@localhost:5432/attendance` |
+| `JWT_SECRET` | секрет підпису access токена | випадковий рядок |
+| `JWT_EXPIRES_IN` | час життя access токена | `15m` |
+| `REFRESH_TOKEN_SECRET` | секрет підпису refresh токена | інший випадковий рядок |
+| `REFRESH_TOKEN_EXPIRES_IN` | час життя refresh токена | `7d` |
+| `UPLOAD_DIR` | папка для завантажених файлів | `uploads` |
+| `MAX_FILE_SIZE` | максимальний розмір файлу, байт | `5242880` |
+| `FRONTEND_URL` | дозволене джерело для CORS | `http://localhost:5173` |
+| `RATE_LIMIT_MAX` | ліміт запитів з однієї IP за 15 хвилин | `100` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | дані для `npm run seed:admin` | `admin@example.com` |
 
-## Модель даних
+Файл `.env` не потрапляє в репозиторій.
 
-| Таблиця | Опис |
-|---|---|
-| `Group` | навчальна група (наприклад, КН-21) |
-| `User` | користувач з роллю `ADMIN`, `TEACHER` або `STUDENT` |
-| `Subject` | навчальний предмет |
-| `TeacherSubject` | зв'язок викладач ↔ предмет (M:N) |
-| `Lesson` | пара: предмет, група, викладач, дата, тема |
-| `Attendance` | відмітка студента на парі: `PRESENT`, `ABSENT`, `LATE`, `EXCUSED` |
-| `Document` | довідка до відмітки (1:1 з `Attendance`) |
+## Аутентифікація та авторизація
 
-Зв'язки:
+- Пароль хешується через **Argon2id**. У базі зберігається лише хеш, у відповідях поле `password` не повертається.
+- **Access токен** (JWT, за замовчуванням 15 хвилин) передається в заголовку `Authorization: Bearer <token>`. У payload лежать `userId` і `role`.
+- **Refresh токен** (за замовчуванням 7 днів) зберігається в БД як SHA-256 хеш, тому його можна відкликати. При кожному `POST /api/auth/refresh` застосовується **ротація**: старий токен відкликається, видається нова пара. Якщо відкликаний токен пред'явити повторно, відкликаються всі токени користувача.
+- `POST /api/auth/logout` відкликає refresh токен.
+- Публічна реєстрація завжди створює роль `STUDENT`, поле `role` у запиті ігнорується. Адміністратора створює `npm run seed:admin`.
 
-- `Group` 1:N `User` (студенти групи)
-- `Subject` 1:N `Lesson`, `Group` 1:N `Lesson`, `User` (викладач) 1:N `Lesson`
-- `Lesson` 1:N `Attendance`, `User` (студент) 1:N `Attendance`
-- `User` (викладач) M:N `Subject` через `TeacherSubject`
-- `Attendance` 1:1 `Document`
-- унікальна пара `(lessonId, studentId)`: студента не можна відмітити на одній парі двічі
+### Права доступу за ролями
+
+| Ресурс | Читання | Створення / зміна / видалення |
+|---|---|---|
+| `/groups`, `/subjects` | будь-який авторизований | `ADMIN` |
+| `/users` | `ADMIN`, `TEACHER` | `ADMIN` |
+| `/lessons` | будь-який авторизований | `ADMIN`, `TEACHER` |
+| `/attendance` | будь-який авторизований (`STUDENT` бачить лише свої записи) | `ADMIN`, `TEACHER` |
+| `POST /attendance/:id/document` | | `STUDENT`, лише до власного запису |
+| `/files` | авторизований | авторизований (видалення: власник або `ADMIN`) |
+
+Без токена сервер повертає `401`, з токеном недостатньої ролі `403`.
 
 ## API
 
-Базовий URL: `http://localhost:3000/api`. Формат даних: JSON.
+Базовий URL: `http://localhost:3000/api`. Формат даних: JSON. Усі маршрути, крім `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` і `/health`, вимагають токен.
 
-### Групи `/groups`
-
-| Метод | URL | Опис | Тіло запиту |
-|---|---|---|---|
-| GET | `/groups` | список груп (з кількістю студентів) | |
-| GET | `/groups/:id` | група зі списком студентів | |
-| POST | `/groups` | створити групу | `{ "name": "KN-21" }` |
-| PUT | `/groups/:id` | оновити групу | `{ "name": "KN-22" }` |
-| DELETE | `/groups/:id` | видалити групу | |
-
-### Предмети `/subjects`
+### Автентифікація `/auth`
 
 | Метод | URL | Опис | Тіло запиту |
 |---|---|---|---|
-| GET | `/subjects` | список предметів (з кількістю пар) | |
-| GET | `/subjects/:id` | один предмет | |
-| POST | `/subjects` | створити предмет | `{ "name": "Web Development" }` |
-| PUT | `/subjects/:id` | оновити предмет | `{ "name": "Databases" }` |
-| DELETE | `/subjects/:id` | видалити предмет | |
+| POST | `/auth/register` | реєстрація (роль `STUDENT`) | `{ "email", "password", "fullName", "groupId"? }` |
+| POST | `/auth/login` | вхід, повертає `user` і `tokens` | `{ "email", "password" }` |
+| POST | `/auth/refresh` | нова пара токенів (ротація) | `{ "refreshToken" }` |
+| POST | `/auth/logout` | відкликання refresh токена | `{ "refreshToken" }` |
+| POST | `/auth/change-password` | зміна пароля (потрібен токен) | `{ "currentPassword", "newPassword" }` |
+
+Пароль: від 8 до 128 символів.
+
+### Групи `/groups`, предмети `/subjects`
+
+| Метод | URL | Опис | Тіло запиту |
+|---|---|---|---|
+| GET | `/groups`, `/subjects` | список із пагінацією | |
+| GET | `/groups/:id`, `/subjects/:id` | один запис | |
+| POST | `/groups`, `/subjects` | створити | `{ "name": "KN-21" }` |
+| PUT | `/groups/:id`, `/subjects/:id` | оновити | `{ "name": "KN-22" }` |
+| DELETE | `/groups/:id`, `/subjects/:id` | видалити | |
 
 ### Користувачі `/users`
 
-Поле `password` у відповідях ніколи не повертається. У базі зберігається bcrypt-хеш.
-
 | Метод | URL | Опис |
 |---|---|---|
-| GET | `/users` | список користувачів |
+| GET | `/users` | список із пагінацією |
 | GET | `/users/:id` | користувач разом з групою |
-| POST | `/users` | створити користувача |
+| POST | `/users` | створити користувача (будь-яка роль) |
 | PUT | `/users/:id` | оновити (усі поля необов'язкові) |
 | DELETE | `/users/:id` | видалити |
 
-Тіло POST:
-
-| Поле | Тип | Обов'язкове | Правило |
-|---|---|---|---|
-| `email` | string | так | коректна пошта, унікальна |
-| `password` | string | так | мінімум 6 символів |
-| `fullName` | string | так | не порожнє |
-| `role` | string | ні | `ADMIN`, `TEACHER`, `STUDENT` (за замовчуванням `STUDENT`) |
-| `groupId` | number | ні | id існуючої групи |
+Тіло POST: `email`, `password` (мін. 8 символів), `fullName`, `role` (`ADMIN`/`TEACHER`/`STUDENT`, необов'язково), `groupId` (необов'язково).
 
 ### Пари `/lessons`
 
 | Метод | URL | Опис |
 |---|---|---|
-| GET | `/lessons` | список пар. Фільтри: `?groupId=2&subjectId=1` |
+| GET | `/lessons` | список із пагінацією, пошуком і фільтрами |
 | GET | `/lessons/:id` | пара з відмітками відвідуваності |
 | POST | `/lessons` | створити пару |
 | PUT | `/lessons/:id` | оновити пару |
 | DELETE | `/lessons/:id` | видалити пару (відмітки видаляються каскадно) |
 
-Тіло POST:
-
-| Поле | Тип | Обов'язкове | Правило |
-|---|---|---|---|
-| `date` | string | так | ISO 8601, наприклад `2026-10-30T09:00:00Z` |
-| `topic` | string | ні | тема пари |
-| `subjectId` | number | так | id предмета |
-| `groupId` | number | так | id групи |
-| `teacherId` | number | так | id викладача |
+Тіло POST: `date` (ISO 8601, наприклад `2026-10-30T09:00:00Z`), `topic` (необов'язково), `subjectId`, `groupId`, `teacherId`.
 
 ### Відвідуваність `/attendance`
 
 | Метод | URL | Опис |
 |---|---|---|
-| GET | `/attendance` | список відміток. Фільтри: `?lessonId=1&studentId=2` |
+| GET | `/attendance` | список відміток із пагінацією, пошуком і фільтрами |
 | GET | `/attendance/:id` | одна відмітка |
 | POST | `/attendance` | створити відмітку |
 | PUT | `/attendance/:id` | змінити статус або коментар |
 | DELETE | `/attendance/:id` | видалити відмітку |
+| POST | `/attendance/:id/document` | студент прикріплює довідку (`multipart/form-data`, поле `file`) |
 
-Тіло POST:
+Тіло POST: `lessonId`, `studentId`, `status` (`PRESENT`/`ABSENT`/`LATE`/`EXCUSED`, за замовчуванням `PRESENT`), `comment` (до 500 символів). Пара `(lessonId, studentId)` унікальна. До одного запису можна прикріпити лише одну довідку (повторно: `409`).
 
-| Поле | Тип | Обов'язкове | Правило |
-|---|---|---|---|
-| `lessonId` | number | так | id пари |
-| `studentId` | number | так | id студента |
-| `status` | string | ні | `PRESENT`, `ABSENT`, `LATE`, `EXCUSED` (за замовчуванням `PRESENT`) |
-| `comment` | string | ні | до 500 символів |
+### Файли `/files`
+
+| Метод | URL | Опис |
+|---|---|---|
+| POST | `/files/upload` | завантажити файл (`multipart/form-data`, поле `file`) |
+| GET | `/files/:id` | отримати файл |
+| DELETE | `/files/:id` | видалити файл (власник або `ADMIN`) |
+
+Файловий сервіс перевіряє MIME-тип і розширення разом (білий список), обмежує розмір (`MAX_FILE_SIZE`, за замовчуванням 5 МБ) і кількість файлів у запиті (1). Файл зберігається на диску під згенерованим іменем, оригінальне ім'я лише записується в БД. Якщо запис у БД не вдався, файл з диска прибирається.
+
+## Пагінація, пошук, фільтрація, сортування
+
+Списки повертають відповідь у форматі:
+
+```json
+{
+  "data": [],
+  "pagination": { "page": 1, "limit": 10, "total": 42, "totalPages": 5, "hasMore": true }
+}
+```
+
+Спільні параметри query:
+
+| Параметр | Опис |
+|---|---|
+| `page` | номер сторінки, від 1 (за замовчуванням 1) |
+| `limit` | елементів на сторінці, 1–100 (за замовчуванням 10) |
+| `search` | пошук без урахування регістру (тема пари, ім'я студента, назва тощо) |
+| `sortBy`, `order` | поле з білого списку та `asc`/`desc` |
+
+Додаткові фільтри:
+
+| Ресурс | Фільтри | Поля для `sortBy` |
+|---|---|---|
+| `/lessons` | `subjectId`, `groupId`, `teacherId`, `dateFrom`, `dateTo` | `id`, `date`, `topic` |
+| `/attendance` | `lessonId`, `studentId`, `status`, `dateFrom`, `dateTo`, `search` (ім'я студента) | `id`, `status` |
+| `/subjects` | `search` | `id`, `name` |
+
+Некоректні значення фільтрів повертають `400`. Дата без часу в `dateTo` включає весь день.
 
 ## Приклади
 
-### Створення групи
+### Вхід
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "admin12345" }
+```
+
+Відповідь `200 OK`:
+
+```json
+{
+  "message": "Успішний вхід",
+  "user": { "id": 1, "email": "admin@example.com", "fullName": "Administrator", "role": "ADMIN" },
+  "tokens": { "accessToken": "<jwt>", "refreshToken": "<jwt>" }
+}
+```
+
+### Захищений запит
+
+```http
+GET /api/attendance?status=ABSENT&dateFrom=2026-10-01&page=1&limit=20
+Authorization: Bearer <accessToken>
+```
+
+### Відмова за роллю
 
 ```http
 POST /api/groups
-Content-Type: application/json
-
-{ "name": "KN-21" }
+Authorization: Bearer <токен студента>
 ```
 
-Відповідь `201 Created`:
+Відповідь `403 Forbidden`:
 
 ```json
-{ "id": 1, "name": "KN-21" }
+{ "error": "Недостатньо прав для виконання цієї операції" }
 ```
 
-### Створення студента
-
-```http
-POST /api/users
-Content-Type: application/json
-
-{
-  "email": "ivan@test.com",
-  "password": "secret123",
-  "fullName": "Ivan Petrenko",
-  "role": "STUDENT",
-  "groupId": 1
-}
-```
-
-Відповідь `201 Created`:
-
-```json
-{
-  "id": 2,
-  "email": "ivan@test.com",
-  "fullName": "Ivan Petrenko",
-  "role": "STUDENT",
-  "groupId": 1,
-  "createdAt": "2026-10-29T13:38:49.815Z"
-}
-```
-
-### Відмітка відвідуваності
-
-```http
-POST /api/attendance
-Content-Type: application/json
-
-{ "lessonId": 1, "studentId": 2, "status": "LATE", "comment": "Запізнився на 10 хв" }
-```
+Більше прикладів у `requests.http` і в Swagger (`/api-docs`).
 
 ## Обробка помилок
 
 Усі помилки повертаються у форматі JSON з полем `error`.
 
-| Код | Коли | Приклад відповіді |
-|---|---|---|
-| 400 | помилка валідації тіла запиту | `{ "error": "Validation failed", "details": [{ "field": "email", "message": "Invalid email" }] }` |
-| 400 | некоректний id в URL | `{ "error": "Invalid id" }` |
-| 400 | пов'язаного запису не існує (зовнішній ключ) | `{ "error": "Related record does not exist" }` |
-| 400 | некоректний JSON | `{ "error": "Invalid JSON" }` |
-| 404 | запис або маршрут не знайдено | `{ "error": "Record not found" }` / `{ "error": "Route not found" }` |
-| 409 | порушення унікальності (дублікат) | `{ "error": "Already exists: ..." }` |
-| 500 | внутрішня помилка сервера | `{ "error": "Internal server error" }` |
+| Код | Коли |
+|---|---|
+| 400 | помилка валідації, некоректний id або фільтр, непідтримуваний тип або завеликий файл, некоректний JSON |
+| 401 | немає токена, токен недійсний або прострочений, хибний email чи пароль, недійсний refresh токен |
+| 403 | недостатньо прав для ролі або чужий ресурс |
+| 404 | запис або маршрут не знайдено |
+| 409 | порушення унікальності (дублікат), довідка вже прикріплена |
+| 429 | перевищено ліміт запитів |
+| 500 | внутрішня помилка сервера |
+
+## Безпека
+
+- паролі: Argon2id; повідомлення про помилку входу однакове для хибного email і хибного пароля
+- refresh токени зберігаються лише як хеш, ротація та відкликання
+- `helmet` (безпечні HTTP-заголовки), CORS з білим списком джерела, rate limiting на `/api/`
+- валідація вхідних даних через zod, білі списки для полів сортування, обмеження `limit`
+- ORM Prisma (параметризовані запити), секрети лише в `.env`
 
 ## Тестування
 
-Усі ендпоінти перевірялися через PowerShell (`Invoke-RestMethod`) і Postman. Скріншоти знаходяться у папці `reports/`.
+```bash
+npm test
+```
+
+Використовується вбудований тестовий раннер Node.js (`node:test`) і `supertest`. Тести працюють із реальною БД, тому бажано мати окрему тестову базу. Тести лежать у `tests/auth.test.js`. Ручні запити: `requests.http`. Скріншоти: папка `reports/`.
