@@ -183,10 +183,10 @@ router.delete('/:id', authenticate, authorize('ADMIN', 'TEACHER'), controller.re
 
 /**
  * @openapi
- * /api/attendance/{id}:
- *   delete:
+ * /api/attendance/{id}/document:
+ *   post:
  *     tags: [Attendance]
- *     summary: Видалити запис відвідуваності (ADMIN, TEACHER)
+ *     summary: Прикріпити довідку до власного запису (STUDENT)
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -194,13 +194,27 @@ router.delete('/:id', authenticate, authorize('ADMIN', 'TEACHER'), controller.re
  *         name: id
  *         required: true
  *         schema: { type: integer }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file: { type: string, format: binary }
  *     responses:
- *       204:
- *         description: Запис видалено, тіла відповіді немає
+ *       201:
+ *         description: Довідку прикріплено, повертається документ разом з файлом
  *       400: { $ref: '#/components/responses/BadRequest' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  *       404: { $ref: '#/components/responses/NotFound' }
+ *       409:
+ *         description: До цього запису вже прикріплено довідку
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Error' }
  */
 router.post('/:id/document', authenticate, authorize('STUDENT'), upload.single('file'), controller.attachDocument);
 
