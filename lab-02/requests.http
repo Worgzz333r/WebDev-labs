@@ -506,3 +506,103 @@ Content-Type: image/png
 
 < ./test.png
 ------Boundary--
+
+
+
+### ===== ЖУРНАЛ ДІЙ =====
+
+### Вхід адміна (оновити токен)
+# @name auditAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "admin12345" }
+
+### Невдалий вхід (очікую 401, потрапить у журнал як LOGIN_FAILED)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "wrongpassword" }
+
+### Журнал: усі записи (очікую 200)
+GET {{host}}/api/audit-logs
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+
+### Журнал: лише LOGIN_FAILED (очікую 200)
+GET {{host}}/api/audit-logs?action=LOGIN_FAILED
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+
+### Вхід студента (для перевірки журналу)
+# @name auditStudent
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "password123" }
+
+### Журнал: студент (очікую 403)
+GET {{host}}/api/audit-logs
+Authorization: Bearer {{auditStudent.response.body.tokens.accessToken}}
+
+### Множинне завантаження: два PNG (очікую 201)
+POST {{host}}/api/files/upload-multiple
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="files"; filename="a.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary
+Content-Disposition: form-data; name="files"; filename="b.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+
+
+### ===== 2FA =====
+
+### 2FA 0. Реєстрація окремого користувача (409, якщо вже є, це нормально)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123", "fullName": "Тест 2FA" }
+
+### 2FA 1. Вхід
+# @name tfaLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123" }
+
+### 2FA 2. Setup (очікую 200 і secret)
+POST {{host}}/api/auth/2fa/setup
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+
+### 2FA 3. Enable з хибним кодом (очікую 400)
+POST {{host}}/api/auth/2fa/enable
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "code": "000000" }
+
+### 2FA 4. Enable з правильним кодом (очікую 200)
+POST {{host}}/api/auth/2fa/enable
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "code": "217807" }
+
+### 2FA 5. Вхід без коду (очікую 401, twoFactorRequired true)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123" }
+
+### 2FA 6. Вхід з правильним кодом (очікую 200)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123", "code": "217807" }
