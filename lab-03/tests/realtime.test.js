@@ -102,9 +102,10 @@ test('Attendance: створення, оновлення й видалення �
     forStudent = waitFor(studentSocket, 'attendance:deleted');
     const removed = await request(app).delete(`/api/attendance/${created.body.id}`).set(bearer(token));
     assert.equal(removed.status, 204);
-    assert.deepEqual(await forStudent, [
-        { id: created.body.id, lessonId: lesson.id, studentId: student.id },
-    ]);
+    // змінено: разом з подією тепер приходить { seq }
+    const [deleted, deletedMeta] = await forStudent;
+    assert.deepEqual(deleted, { id: created.body.id, lessonId: lesson.id, studentId: student.id });
+    assert.ok(Number.isInteger(deletedMeta.seq));
 
     // чужий студент нічого не отримав
     assert.equal(otherGot, false);
@@ -147,9 +148,10 @@ test('Lesson: події доходять до групи й викладача'
     forGroup = waitFor(studentSocket, 'lesson:deleted');
     const removed = await request(app).delete(`/api/lessons/${created.body.id}`).set(bearer(token));
     assert.equal(removed.status, 204);
-    assert.deepEqual(await forGroup, [
-        { id: created.body.id, groupId: group.id, teacherId: teacher.id },
-    ]);
+    // змінено: разом з подією тепер приходить { seq }
+    const [deletedLesson, lessonMeta] = await forGroup;
+    assert.deepEqual(deletedLesson, { id: created.body.id, groupId: group.id, teacherId: teacher.id });
+    assert.ok(Number.isInteger(lessonMeta.seq));
 });
 
 test('Lesson: сповіщення отримують усі студенти групи (batch), викладач ні', async () => {
@@ -237,4 +239,49 @@ test('Presence: онлайн, поки є хоча б одне з\'єднанн�
     second.close();
     assert.equal((await wentOffline).online, false);
     assert.ok(!(await staff.emitWithAck('presence:list')).online.includes(user.id));
+});
+
+test('Відновлення: після перепідключення студент отримує пропущені події', async () => {
+  const token = generateAccessToken(teacher.id, 'TEACHER');
+  const api = (method, path, body) => request(app)[method](path).set(bearer(token)).send(body);
+
+  // студент онлайн, отримує першу подію й запам'ятовує seq
+  const before = await open(student.id, 'STUDENT');
+  const first = waitFor(before, 'attendance:created');
+  const created = await api('post', '/api/attendance', {
+    lessonId: lesson.id,
+    studentId: student.id,
+    status: 'ABSENT',
+  });
+  assert.equal(created.status, 201);
+  const [, { seq: lastSeq }] = await first;
+
+  // зв'язок розірвано, поки студент офлайн, стаються зміни
+  before.close();
+  await api('put', `/api/attendance/${created.body.id}`, { status: 'LATE' });
+  await api('put', `/api/attendance/${created.body.id}`, { status: 'EXCUSED' });
+  // подія для іншого студента (студент у кімнаті заняття не підписаний, його це не стосується)
+  await api('post', '/api/attendance', { lessonId: lesson.id, studentId: other.id, status: 'ABSENT' });
+
+  // перепідключення: запит пропущеного
+  const after = await open(student.id, 'STUDENT');
+  const res = await after.emitWithAck('events:since', lastSeq);
+  assert.equal(res.ok, true);
+  assert.deepEqual(
+    res.events.map((e) => [e.type, e.payload.status]),
+    [
+      ['attendance:updated', 'LATE'],
+      ['attendance:updated', 'EXCUSED'],
+    ],
+  );
+  assert.ok(res.events[0].seq < res.events[1].seq);
+  assert.equal(res.hasMore, false);
+  assert.equal(res.gap, false);
+
+  // повторний запит з останнім seq нічого нового не повертає
+  const again = await after.emitWithAck('events:since', res.events.at(-1).seq);
+  assert.deepEqual(again.events, []);
+
+  // некоректний аргумент
+  assert.deepEqual(await after.emitWithAck('events:since', 'abc'), { ok: false, error: 'bad_request' });
 });

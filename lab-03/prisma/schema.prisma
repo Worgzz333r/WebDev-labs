@@ -181,3 +181,14 @@ model Notification {
   @@index([userId, readAt])
   @@index([userId, createdAt])
 }
+
+model RealtimeEvent {
+  seq       Int      @id @default(autoincrement())
+  type      String
+  rooms     String[]
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([rooms], type: Gin)
+  @@index([createdAt])
+}

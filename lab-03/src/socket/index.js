@@ -4,6 +4,7 @@ import { verifyAccessToken } from '../utils/jwt.js';
 import { registerRoomHandlers } from './handlers/roomHandlers.js';
 import { registerPresenceHandlers } from './handlers/presenceHandlers.js';
 import { broadcastPresence, isOnline } from './presence.js';
+import { registerEventHandlers } from './handlers/eventHandlers.js';
 
 export function initSocket(httpServer) {
   const io = new Server(httpServer, {
@@ -41,6 +42,7 @@ export function initSocket(httpServer) {
 
     registerRoomHandlers(io, socket);
     registerPresenceHandlers(io, socket);
+    registerEventHandlers(io, socket);
 
     // Перше з'єднання користувача = він щойно став онлайн
     const sockets = await io.in(`user:${userId}`).fetchSockets();

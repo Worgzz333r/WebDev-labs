@@ -103,7 +103,7 @@ export const create = async (req, res) => {
     details: { lessonId, studentId, status: record.status },
   });
 
-  emitAttendance(req, 'attendance:created', record);
+  await emitAttendance(req, 'attendance:created', record);
   await notifyStudent(req, record, 'Відмічено відвідуваність');
 
   res.status(201).json(record);
@@ -123,7 +123,7 @@ export const update = async (req, res) => {
     details: { status: record.status },
   });
 
-  emitAttendance(req, 'attendance:updated', record);
+  await emitAttendance(req, 'attendance:updated', record);
   await notifyStudent(req, record, 'Відвідуваність змінено');
 
   res.json(record);
@@ -133,7 +133,7 @@ export const remove = async (req, res) => {
   const id = Number(req.params.id);
   const record = await prisma.attendance.delete({ where: { id } });
   await logAction(req, 'ATTENDANCE_DELETED', { entity: 'Attendance', entityId: id });
-  emitAttendance(req, 'attendance:deleted', {
+  await emitAttendance(req, 'attendance:deleted', {
     id,
     lessonId: record.lessonId,
     studentId: record.studentId,

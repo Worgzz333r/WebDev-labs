@@ -93,7 +93,7 @@ export const create = async (req, res) => {
     include,
   });
 
-  emitLesson(req, 'lesson:created', lesson);
+  await emitLesson(req, 'lesson:created', lesson);
   await notifyGroup(req, lesson, 'Заплановано заняття');
   res.status(201).json(lesson);
 };
@@ -113,7 +113,7 @@ export const update = async (req, res) => {
     include,
   });
 
-  emitLesson(req, 'lesson:updated', lesson);
+  await emitLesson(req, 'lesson:updated', lesson);
   await notifyGroup(req, lesson, 'Заняття змінено');
   res.json(lesson);
 };
@@ -121,7 +121,7 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
   const lesson = await prisma.lesson.delete({ where: { id } });
-  emitLesson(req, 'lesson:deleted', {
+  await emitLesson(req, 'lesson:deleted', {
     id,
     groupId: lesson.groupId,
     teacherId: lesson.teacherId,
