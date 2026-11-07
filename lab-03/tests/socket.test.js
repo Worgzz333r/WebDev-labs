@@ -28,7 +28,7 @@ test('підключення без токена відхиляється', asyn
 });
 
 test('кімнати та персональні сповіщення', async () => {
-  const alice = connect(url, { auth: { token: generateAccessToken(1, 'TEACHER') } });
+  const alice = connect(url, { auth: { token: generateAccessToken(1, 'ADMIN') } });
   const bob = connect(url, { auth: { token: generateAccessToken(2, 'STUDENT') } });
   clients.push(alice, bob);
   await Promise.all([once(alice, 'connect'), once(bob, 'connect')]);
@@ -48,4 +48,14 @@ test('кімнати та персональні сповіщення', async ()
   io.to('user:2').emit('notification', { text: 'привіт' });
   assert.deepEqual((await personal)[0], { text: 'привіт' });
   assert.equal(bobGot, false);
+});
+
+test('студент не може приєднатися до чужої кімнати', async () => {
+  const student = connect(url, { auth: { token: generateAccessToken(999999, 'STUDENT') } });
+  clients.push(student);
+  await once(student, 'connect');
+
+  assert.deepEqual(await student.emitWithAck('room:join', 'group:1'), { ok: false, error: 'forbidden' });
+  assert.deepEqual(await student.emitWithAck('room:join', 'user:1'), { ok: false, error: 'forbidden' });
+  assert.deepEqual(await student.emitWithAck('room:join', 'що-завгодно'), { ok: false, error: 'forbidden' });
 });
