@@ -1,5 +1,6 @@
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 import prisma from '../utils/prisma.js';
+import { emitLesson } from '../socket/emit.js';
 
 const LESSON_SORT_FIELDS = ['id', 'date', 'topic'];
 
@@ -73,6 +74,9 @@ export const create = async (req, res) => {
     data: { date: new Date(date), topic, subjectId, groupId, teacherId },
     include,
   });
+
+  emitLesson(req, 'lesson:created', lesson);
+
   res.status(201).json(lesson);
 };
 
@@ -90,11 +94,19 @@ export const update = async (req, res) => {
     },
     include,
   });
+
+  emitLesson(req, 'lesson:updated', lesson);
+
   res.json(lesson);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
-  await prisma.lesson.delete({ where: { id } });
+  const lesson = await prisma.lesson.delete({ where: { id } });
+  emitLesson(req, 'lesson:deleted', {
+    id,
+    groupId: lesson.groupId,
+    teacherId: lesson.teacherId,
+  });
   res.status(204).send();
 };
