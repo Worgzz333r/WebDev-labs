@@ -14,8 +14,11 @@ import auditRoutes from './routes/auditRoutes.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import prisma from './utils/prisma.js';
 
 const app = express();
+
+app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
@@ -43,6 +46,16 @@ app.use(
   ['/api/auth/login', '/api/auth/refresh', '/api/auth/change-password', '/api/auth/2fa'],
   authLimiter,
 );
+
+// Перевірка стану для хостингу та моніторингу (до limiter, щоб не витрачати ліміт)
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', uptime: Math.round(process.uptime()) });
+  } catch {
+    res.status(503).json({ status: 'error', db: 'unavailable' });
+  }
+});
 
 app.use(express.json());
 
