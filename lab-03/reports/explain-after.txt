@@ -1,0 +1,49 @@
+
+=== 1. Відвідуваність студента: кількість (GET /api/attendance, студент)
+Aggregate  (cost=8.42..8.43 rows=1 width=8) (actual time=0.162..0.162 rows=1.00 loops=1)
+  Buffers: shared hit=1 read=3
+  ->  Index Only Scan using "Attendance_studentId_id_idx" on "Attendance"  (cost=0.42..7.92 rows=200 width=0) (actual time=0.137..0.148 rows=200.00 loops=1)
+        Index Cond: ("studentId" = 476)
+        Heap Fetches: 0
+        Index Searches: 1
+        Buffers: shared hit=1 read=3
+Planning:
+  Buffers: shared hit=65 read=1
+Planning Time: 1.812 ms
+Execution Time: 0.181 ms
+
+=== 2. Відвідуваність студента: остання сторінка
+Limit  (cost=0.42..35.59 rows=10 width=48) (actual time=0.016..0.042 rows=10.00 loops=1)
+  Buffers: shared hit=13
+  ->  Index Scan Backward using "Attendance_studentId_id_idx" on "Attendance"  (cost=0.42..703.92 rows=200 width=48) (actual time=0.015..0.040 rows=10.00 loops=1)
+        Index Cond: ("studentId" = 476)
+        Index Searches: 1
+        Buffers: shared hit=13
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.081 ms
+Execution Time: 0.059 ms
+
+=== 3. Заняття групи за період (GET /api/lessons?groupId=...)
+Limit  (cost=0.28..30.43 rows=10 width=42) (actual time=0.041..0.061 rows=10.00 loops=1)
+  Buffers: shared hit=10 read=2
+  ->  Index Scan Backward using "Lesson_groupId_date_idx" on "Lesson"  (cost=0.28..96.76 rows=32 width=42) (actual time=0.041..0.060 rows=10.00 loops=1)
+        Index Cond: (("groupId" = 18) AND (date >= (now() - '60 days'::interval)))
+        Index Searches: 1
+        Buffers: shared hit=10 read=2
+Planning:
+  Buffers: shared hit=73 read=1
+Planning Time: 1.386 ms
+Execution Time: 0.069 ms
+
+=== 4. Усі відсутні (GET /api/attendance?status=ABSENT)
+Aggregate  (cost=2199.37..2199.38 rows=1 width=8) (actual time=5.899..5.899 rows=1.00 loops=1)
+  Buffers: shared hit=649
+  ->  Seq Scan on "Attendance"  (cost=0.00..2149.03 rows=20136 width=0) (actual time=0.012..5.321 rows=19932.00 loops=1)
+        Filter: (status = 'ABSENT'::"AttendanceStatus")
+        Rows Removed by Filter: 100070
+        Buffers: shared hit=649
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.033 ms
+Execution Time: 5.907 ms

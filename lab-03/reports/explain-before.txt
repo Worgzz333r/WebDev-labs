@@ -1,0 +1,53 @@
+
+=== 1. Відвідуваність студента: кількість (GET /api/attendance, студент)
+Aggregate  (cost=2149.53..2149.54 rows=1 width=8) (actual time=6.029..6.030 rows=1.00 loops=1)
+  Buffers: shared hit=649
+  ->  Seq Scan on "Attendance"  (cost=0.00..2149.03 rows=200 width=0) (actual time=0.012..6.010 rows=200.00 loops=1)
+        Filter: ("studentId" = 476)
+        Rows Removed by Filter: 119802
+        Buffers: shared hit=649
+Planning:
+  Buffers: shared hit=51
+Planning Time: 1.551 ms
+Execution Time: 6.064 ms
+
+=== 2. Відвідуваність студента: остання сторінка
+Limit  (cost=0.29..203.89 rows=10 width=48) (actual time=0.063..0.555 rows=10.00 loops=1)
+  Buffers: shared hit=51
+  ->  Index Scan Backward using "Attendance_pkey" on "Attendance"  (cost=0.29..4072.33 rows=200 width=48) (actual time=0.061..0.553 rows=10.00 loops=1)
+        Filter: ("studentId" = 476)
+        Rows Removed by Filter: 5990
+        Index Searches: 1
+        Buffers: shared hit=51
+Planning:
+  Buffers: shared hit=16
+Planning Time: 0.112 ms
+Execution Time: 0.565 ms
+
+=== 3. Заняття групи за період (GET /api/lessons?groupId=...)
+Limit  (cost=118.75..118.78 rows=10 width=42) (actual time=0.331..0.332 rows=10.00 loops=1)
+  Buffers: shared hit=41
+  ->  Sort  (cost=118.75..118.83 rows=32 width=42) (actual time=0.331..0.331 rows=10.00 loops=1)
+        Sort Key: date DESC
+        Sort Method: quicksort  Memory: 26kB
+        Buffers: shared hit=41
+        ->  Seq Scan on "Lesson"  (cost=0.00..118.06 rows=32 width=42) (actual time=0.017..0.306 rows=17.00 loops=1)
+              Filter: (("groupId" = 18) AND (date >= (now() - '60 days'::interval)))
+              Rows Removed by Filter: 3986
+              Buffers: shared hit=38
+Planning:
+  Buffers: shared hit=54
+Planning Time: 1.867 ms
+Execution Time: 0.345 ms
+
+=== 4. Усі відсутні (GET /api/attendance?status=ABSENT)
+Aggregate  (cost=2199.37..2199.38 rows=1 width=8) (actual time=5.347..5.347 rows=1.00 loops=1)
+  Buffers: shared hit=649
+  ->  Seq Scan on "Attendance"  (cost=0.00..2149.03 rows=20136 width=0) (actual time=0.015..4.719 rows=19932.00 loops=1)
+        Filter: (status = 'ABSENT'::"AttendanceStatus")
+        Rows Removed by Filter: 100070
+        Buffers: shared hit=649
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.067 ms
+Execution Time: 5.362 ms

@@ -81,6 +81,7 @@ model Lesson {
   teacher User    @relation(fields: [teacherId], references: [id])
 
   attendance Attendance[]
+  @@index([groupId, date])
 }
 
 model Attendance {
@@ -97,6 +98,7 @@ model Attendance {
   document Document?
 
   @@unique([lessonId, studentId])
+  @@index([studentId, id])
 }
 
 model Document {
