@@ -40,6 +40,15 @@ export function initSocket(httpServer) {
     if (groupId) socket.join(`group:${groupId}`);
     if (socket.user.role !== 'STUDENT') socket.join('staff');
 
+    // Токен має термін дії: коли він спливає, повідомляємо клієнта й розриваємо з'єднання,
+    // клієнт оновлює токен (refresh) і підключається з новим auth.token
+    const msLeft = socket.user.exp * 1000 - Date.now();
+    const expiryTimer = setTimeout(() => {
+      socket.emit('auth:expired');
+      socket.disconnect(true);
+    }, Math.min(Math.max(msLeft, 0), 2 ** 31 - 1)); // setTimeout не приймає більше ~24 днів
+    socket.on('disconnect', () => clearTimeout(expiryTimer));
+
     registerRoomHandlers(io, socket);
     registerPresenceHandlers(io, socket);
     registerEventHandlers(io, socket);

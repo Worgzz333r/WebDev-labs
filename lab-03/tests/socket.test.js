@@ -7,6 +7,7 @@ import app from '../src/app.js';
 import prisma from '../src/utils/prisma.js';
 import { initSocket } from '../src/socket/index.js';
 import { generateAccessToken } from '../src/utils/jwt.js';
+import jwt from 'jsonwebtoken';
 
 const TAG = 'sk-test';
 const httpServer = createServer(app);
@@ -91,4 +92,24 @@ test('студент не може приєднатися до чужої кім
   assert.deepEqual(await student.emitWithAck('room:join', 'group:1'), { ok: false, error: 'forbidden' });
   assert.deepEqual(await student.emitWithAck('room:join', 'user:1'), { ok: false, error: 'forbidden' });
   assert.deepEqual(await student.emitWithAck('room:join', 'що-завгодно'), { ok: false, error: 'forbidden' });
+});
+
+test('токен, що спливає, розриває з\'єднання з подією auth:expired', async () => {
+  const shortLived = jwt.sign({ userId: bob.id, role: 'STUDENT' }, process.env.JWT_SECRET, {
+    expiresIn: 1,
+  });
+  const client = connect(url, { auth: { token: shortLived }, reconnection: false });
+  clients.push(client);
+  await once(client, 'connect');
+
+  const expired = once(client, 'auth:expired', { signal: AbortSignal.timeout(4000) });
+  const closed = once(client, 'disconnect', { signal: AbortSignal.timeout(4000) });
+  await expired;
+  const [reason] = await closed;
+  assert.equal(reason, 'io server disconnect');
+
+  // новий токен дозволяє підключитися знову
+  const fresh = connect(url, { auth: { token: generateAccessToken(bob.id, 'STUDENT') } });
+  clients.push(fresh);
+  await once(fresh, 'connect');
 });
