@@ -1,0 +1,642 @@
+@host = http://localhost:3000
+
+### 1. Реєстрація (очікую 201, role STUDENT)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123", "fullName": "Іван Студент" }
+
+### 2. Повторна реєстрація (очікую 409)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123", "fullName": "Іван Студент" }
+
+### 3. Короткий пароль (очікую 400)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "short@example.com", "password": "short", "fullName": "Тест" }
+
+### 4. Спроба зареєструвати адміна (очікую 201, але role STUDENT)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "hacker@example.com", "password": "password123", "fullName": "Хакер", "role": "ADMIN" }
+
+### 5. Вхід (очікую 200)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 6. Хибний пароль (очікую 401)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "wrongpassword" }
+
+### 7. Refresh з токеном із кроку 5 (очікую 200 і новий refreshToken)
+# @name refreshed
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.tokens.refreshToken}}" }
+
+### 8. Refresh зі СТАРИМ токеном (очікую 401)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login.response.body.tokens.refreshToken}}" }
+
+### 9. Refresh з токеном із кроку 7 (очікую 401, бо після кроку 8 усі токени відкликані)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshed.response.body.tokens.refreshToken}}" }
+
+### 10a. Новий вхід для перевірки logout
+# @name login2
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 10b. Logout (очікую 204)
+POST {{host}}/api/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{login2.response.body.tokens.refreshToken}}" }
+
+### 10c. Refresh після logout (очікую 401)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{login2.response.body.tokens.refreshToken}}" }
+
+### 11. Зміна пароля без токена (очікую 401)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+
+{ "currentPassword": "password123", "newPassword": "newpassword456" }
+
+### 12a. Вхід для зміни пароля
+# @name login3
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 12b. Зміна пароля (очікую 200)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{login3.response.body.tokens.accessToken}}
+
+{ "currentPassword": "password123", "newPassword": "newpassword456" }
+
+### 12c. Вхід зі старим паролем (очікую 401)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "password123" }
+
+### 12d. Вхід з новим паролем (очікую 200)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "newpassword456" }
+
+### 13a. Вхід для перевірки хибного пароля (очікую 200)
+# @name login4
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "student@example.com", "password": "newpassword456" }
+
+### 13b. Зміна пароля з хибним поточним (очікую 400)
+POST {{host}}/api/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{login4.response.body.tokens.accessToken}}
+
+{ "currentPassword": "wrongpassword", "newPassword": "anotherpassword789" }
+
+### ===== ПІДГОТОВКА ДАНИХ (спершу npm run seed:admin) =====
+
+### Вхід адміна
+# @name adminLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "admin12345" }
+
+### Дані 1. Предмет
+# @name subject
+POST {{host}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "Математика" }
+
+### Дані 2. Ще один предмет
+POST {{host}}/api/subjects
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "Фізика" }
+
+### Дані 3. Група
+# @name group
+POST {{host}}/api/groups
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "KN-23" }
+
+### Дані 4. Викладач
+# @name teacher
+POST {{host}}/api/users
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "email": "teacher@example.com", "password": "password123", "fullName": "Олена Викладач", "role": "TEACHER" }
+
+### Дані 5. Студент Петро в групі
+# @name student2
+POST {{host}}/api/users
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "password123", "fullName": "Петро Студент", "role": "STUDENT", "groupId": {{group.response.body.id}} }
+
+### Дані 6. Студентка Марія в групі
+# @name student3
+POST {{host}}/api/users
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "email": "maria@example.com", "password": "password123", "fullName": "Марія Студентка", "role": "STUDENT", "groupId": {{group.response.body.id}} }
+
+### Дані 7. Заняття 30 жовтня
+# @name lesson1
+POST {{host}}/api/lessons
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "date": "2026-10-30T09:00:00Z", "topic": "Інтеграли", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+### Дані 8. Заняття 31 жовтня (перевірка dateTo)
+POST {{host}}/api/lessons
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "date": "2026-10-31T09:00:00Z", "topic": "Похідні", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+### Дані 9. Відвідуваність Петра: відсутній
+# @name att1
+POST {{host}}/api/attendance
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "lessonId": {{lesson1.response.body.id}}, "studentId": {{student2.response.body.id}}, "status": "ABSENT", "comment": "Захворів" }
+
+### Дані 10. Відвідуваність Марії: присутня
+# @name att2
+POST {{host}}/api/attendance
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "lessonId": {{lesson1.response.body.id}}, "studentId": {{student3.response.body.id}}, "status": "PRESENT" }
+
+### Вхід викладача
+# @name teacherLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "teacher@example.com", "password": "password123" }
+
+### Вхід студента Петра
+# @name studentLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "password123" }
+
+### Вхід студентки Марії
+# @name mariaLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "maria@example.com", "password": "password123" }
+
+
+### ===== ДОСТУП І РОЛІ =====
+
+### Без токена (очікуємо 401)
+GET {{host}}/api/groups
+
+### Недійсний токен (очікуємо 401)
+GET {{host}}/api/groups
+Authorization: Bearer garbage.token.value
+
+### Студент читає групи (очікуємо 200)
+GET {{host}}/api/groups
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент створює групу (очікуємо 403)
+POST {{host}}/api/groups
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "HACK-1" }
+
+### Викладач створює групу (очікуємо 403)
+POST {{host}}/api/groups
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "HACK-2" }
+
+### Адмін створює групу (очікуємо 201)
+POST {{host}}/api/groups
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "name": "KN-31" }
+
+### Студент дивиться користувачів (очікуємо 403)
+GET {{host}}/api/users
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Викладач дивиться користувачів (очікуємо 200)
+GET {{host}}/api/users
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+### Викладач видаляє користувача (очікуємо 403)
+DELETE {{host}}/api/users/{{student3.response.body.id}}
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+### Некоректний id (очікуємо 400)
+GET {{host}}/api/groups/abc
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Неіснуючий id (очікуємо 404)
+GET {{host}}/api/groups/99999
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Викладач створює заняття (очікуємо 201)
+POST {{host}}/api/lessons
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "date": "2026-11-05T09:00:00Z", "topic": "Ряди", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+### Студент створює заняття (очікуємо 403)
+POST {{host}}/api/lessons
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "date": "2026-11-06T09:00:00Z", "subjectId": {{subject.response.body.id}}, "groupId": {{group.response.body.id}}, "teacherId": {{teacher.response.body.id}} }
+
+
+### ===== ВІДВІДУВАНІСТЬ І ПРАВА СТУДЕНТА =====
+
+### Студент бачить лише свої записи (у data лише studentId Петра)
+GET {{host}}/api/attendance
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент підставляє чужий studentId у фільтр (усе одно лише свої записи)
+GET {{host}}/api/attendance?studentId={{student3.response.body.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент читає свій запис (очікуємо 200)
+GET {{host}}/api/attendance/{{att1.response.body.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент читає ЧУЖИЙ запис (очікуємо 403)
+GET {{host}}/api/attendance/{{att2.response.body.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент відмічає відвідуваність (очікуємо 403)
+POST {{host}}/api/attendance
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "lessonId": {{lesson1.response.body.id}}, "studentId": {{student2.response.body.id}}, "status": "PRESENT" }
+
+### Студент змінює запис (очікуємо 403)
+PUT {{host}}/api/attendance/{{att1.response.body.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "status": "PRESENT" }
+
+### Викладач змінює запис (очікуємо 200)
+PUT {{host}}/api/attendance/{{att1.response.body.id}}
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "status": "EXCUSED", "comment": "Є довідка" }
+
+### Дубль запису (очікуємо 409)
+POST {{host}}/api/attendance
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "lessonId": {{lesson1.response.body.id}}, "studentId": {{student2.response.body.id}} }
+
+### Неіснуюче заняття (очікуємо 400)
+POST {{host}}/api/attendance
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "lessonId": 99999, "studentId": {{student2.response.body.id}} }
+
+
+### ===== ПОШУК, ФІЛЬТРАЦІЯ, ПАГІНАЦІЯ =====
+
+### Користувачі: пошук, роль, сортування
+GET {{host}}/api/users?search=студент&role=STUDENT&sortBy=fullName&order=asc&page=1&limit=5
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Користувачі: limit понад максимум (у відповіді limit = 100)
+GET {{host}}/api/users?limit=999999
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Користувачі: неприпустиме поле сортування (ігнорується, 200)
+GET {{host}}/api/users?sortBy=password
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Користувачі: некоректна роль (очікуємо 400)
+GET {{host}}/api/users?role=HACKER
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Групи: пошук
+GET {{host}}/api/groups?search=kn
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Предмети: пошук і сортування
+GET {{host}}/api/subjects?search=мат&sortBy=name&order=asc
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Предмети: друга сторінка
+GET {{host}}/api/subjects?page=2&limit=1
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Заняття: група + діапазон дат (мають бути обидва, зокрема від 31 жовтня)
+GET {{host}}/api/lessons?groupId={{group.response.body.id}}&dateFrom=2026-10-01&dateTo=2026-10-31&sortBy=date&order=asc
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Заняття: пошук за темою
+GET {{host}}/api/lessons?search=інтег
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Заняття: пагінація
+GET {{host}}/api/lessons?page=2&limit=1
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Заняття: некоректний фільтр (очікуємо 400)
+GET {{host}}/api/lessons?teacherId=abc
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Заняття: некоректна дата (очікуємо 400)
+GET {{host}}/api/lessons?dateFrom=вчора
+Authorization: Bearer {{adminLogin.response.body.tokens.accessToken}}
+
+### Відвідуваність: фільтр за статусом і датами
+GET {{host}}/api/attendance?status=EXCUSED&dateFrom=2026-10-01&dateTo=2026-10-31
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+### Відвідуваність: пошук за іменем студента
+GET {{host}}/api/attendance?search=марія
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+### Відвідуваність: некоректний статус (очікуємо 400)
+GET {{host}}/api/attendance?status=HACKER
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+
+### ===== ФАЙЛИ (виконувати після Кроку 7; test.png має лежати поруч із цим файлом) =====
+
+### Без токена (очікуємо 401)
+POST {{host}}/api/files/upload
+
+### Студент завантажує PNG (очікуємо 201)
+# @name upload
+POST {{host}}/api/files/upload
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+### Неприпустимий тип .exe (очікуємо 400)
+POST {{host}}/api/files/upload
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="virus.exe"
+Content-Type: application/x-msdownload
+
+MZ fake
+------Boundary--
+
+### Власник читає свій файл (очікуємо 200)
+GET {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Викладач читає файл студента (очікуємо 200)
+GET {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{teacherLogin.response.body.tokens.accessToken}}
+
+### Інша студентка читає чужий файл (очікуємо 403)
+GET {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
+
+### Інша студентка видаляє чужий файл (очікуємо 403)
+DELETE {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
+
+### Власник перейменовує свій файл (очікуємо 200)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="originalName"
+
+dovidka.png
+------Boundary--
+
+### Власник замінює вміст файлу (очікуємо 200, старий файл зникає з диска)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+### Інша студентка оновлює чужий файл (очікуємо 403)
+PUT {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{mariaLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="originalName"
+
+hack.png
+------Boundary--
+
+### Власник видаляє свій файл (очікуємо 200)
+DELETE {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Видалений файл (очікуємо 404)
+GET {{host}}/api/files/{{upload.response.body.file.id}}
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+
+### Студент прикріплює довідку до свого запису (очікуємо 201)
+# @name attach
+POST {{host}}/api/attendance/{{att1.response.body.id}}/document
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+### Довідка вдруге (очікуємо 409)
+POST {{host}}/api/attendance/{{att1.response.body.id}}/document
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+### Довідка до ЧУЖОГО запису (очікуємо 403)
+POST {{host}}/api/attendance/{{att2.response.body.id}}/document
+Authorization: Bearer {{studentLogin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+
+
+### ===== ЖУРНАЛ ДІЙ =====
+
+### Вхід адміна (оновити токен)
+# @name auditAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "admin12345" }
+
+### Невдалий вхід (очікую 401, потрапить у журнал як LOGIN_FAILED)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "wrongpassword" }
+
+### Журнал: усі записи (очікую 200)
+GET {{host}}/api/audit-logs
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+
+### Журнал: лише LOGIN_FAILED (очікую 200)
+GET {{host}}/api/audit-logs?action=LOGIN_FAILED
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+
+### Вхід студента (для перевірки журналу)
+# @name auditStudent
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "petro@example.com", "password": "password123" }
+
+### Журнал: студент (очікую 403)
+GET {{host}}/api/audit-logs
+Authorization: Bearer {{auditStudent.response.body.tokens.accessToken}}
+
+### Множинне завантаження: два PNG (очікую 201)
+POST {{host}}/api/files/upload-multiple
+Authorization: Bearer {{auditAdmin.response.body.tokens.accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="files"; filename="a.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary
+Content-Disposition: form-data; name="files"; filename="b.png"
+Content-Type: image/png
+
+< ./test.png
+------Boundary--
+
+
+
+### ===== 2FA =====
+
+### 2FA 0. Реєстрація окремого користувача (409, якщо вже є, це нормально)
+POST {{host}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123", "fullName": "Тест 2FA" }
+
+### 2FA 1. Вхід
+# @name tfaLogin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123" }
+
+### 2FA 2. Setup (очікую 200 і secret)
+POST {{host}}/api/auth/2fa/setup
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+
+### 2FA 3. Enable з хибним кодом (очікую 400)
+POST {{host}}/api/auth/2fa/enable
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "code": "000000" }
+
+### 2FA 4. Enable з правильним кодом (очікую 200)
+POST {{host}}/api/auth/2fa/enable
+Authorization: Bearer {{tfaLogin.response.body.tokens.accessToken}}
+Content-Type: application/json
+
+{ "code": "217807" }
+
+### 2FA 5. Вхід без коду (очікую 401, twoFactorRequired true)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123" }
+
+### 2FA 6. Вхід з правильним кодом (очікую 200)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "tfa@example.com", "password": "password123", "code": "217807" }

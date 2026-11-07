@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model Group {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  students User[]
+  lessons  Lesson[]
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  fullName  String
+  role      Role      @default(STUDENT)
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  createdAt DateTime  @default(now())
+
+  groupId Int?
+  group   Group? @relation(fields: [groupId], references: [id])
+
+  subjects   TeacherSubject[]
+  lessons    Lesson[]
+  attendance Attendance[]
+  files         File[]
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+}
+
+model Subject {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  teachers TeacherSubject[]
+  lessons  Lesson[]
+}
+
+model TeacherSubject {
+  teacherId Int
+  subjectId Int
+
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, subjectId])
+}
+
+model Lesson {
+  id    Int      @id @default(autoincrement())
+  date  DateTime
+  topic String?
+
+  subjectId Int
+  groupId   Int
+  teacherId Int
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  group   Group   @relation(fields: [groupId], references: [id])
+  teacher User    @relation(fields: [teacherId], references: [id])
+
+  attendance Attendance[]
+}
+
+model Attendance {
+  id      Int              @id @default(autoincrement())
+  status  AttendanceStatus @default(PRESENT)
+  comment String?
+
+  lessonId  Int
+  studentId Int
+
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id])
+
+  document Document?
+
+  @@unique([lessonId, studentId])
+}
+
+model Document {
+  id           Int        @id @default(autoincrement())
+
+  attendanceId Int        @unique
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  fileId       Int        @unique
+  file         File       @relation(fields: [fileId], references: [id], onDelete: Cascade)
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  originalName String
+  mimetype     String
+  size         Int
+  path         String
+  uploadedBy   Int
+  createdAt    DateTime @default(now())
+
+  user     User      @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  document Document?
+
+  @@index([uploadedBy])
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  userId    Int
+  expiresAt DateTime
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entity    String?
+  entityId  Int?
+  userId    Int?
+  ip        String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
