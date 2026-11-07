@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model Group {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  students User[]
+  lessons  Lesson[]
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  fullName  String
+  role      Role      @default(STUDENT)
+  createdAt DateTime  @default(now())
+
+  groupId Int?
+  group   Group? @relation(fields: [groupId], references: [id])
+
+  subjects   TeacherSubject[]
+  lessons    Lesson[]
+  attendance Attendance[]
+}
+
+model Subject {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  teachers TeacherSubject[]
+  lessons  Lesson[]
+}
+
+model TeacherSubject {
+  teacherId Int
+  subjectId Int
+
+  teacher User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, subjectId])
+}
+
+model Lesson {
+  id    Int      @id @default(autoincrement())
+  date  DateTime
+  topic String?
+
+  subjectId Int
+  groupId   Int
+  teacherId Int
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+  group   Group   @relation(fields: [groupId], references: [id])
+  teacher User    @relation(fields: [teacherId], references: [id])
+
+  attendance Attendance[]
+}
+
+model Attendance {
+  id      Int              @id @default(autoincrement())
+  status  AttendanceStatus @default(PRESENT)
+  comment String?
+
+  lessonId  Int
+  studentId Int
+
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id])
+
+  document Document?
+
+  @@unique([lessonId, studentId])
+}
+
+model Document {
+  id       Int    @id @default(autoincrement())
+  filePath String
+
+  attendanceId Int        @unique
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+}
