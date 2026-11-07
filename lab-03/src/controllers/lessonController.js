@@ -1,6 +1,7 @@
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 import prisma from '../utils/prisma.js';
 import { emitLesson } from '../socket/emit.js';
+import { notifyMany } from '../utils/notifications.js';
 
 const LESSON_SORT_FIELDS = ['id', 'date', 'topic'];
 
@@ -8,6 +9,23 @@ const include = {
   subject: true,
   group: true,
   teacher: { select: { id: true, fullName: true } },
+};
+
+const notifyGroup = async (req, lesson, title) => {
+  const students = await prisma.user.findMany({
+    where: { groupId: lesson.groupId, role: 'STUDENT' },
+    select: { id: true },
+  });
+  return notifyMany(
+    req.app.get('io'),
+    students.map((s) => s.id),
+    {
+      type: 'LESSON',
+      title,
+      body: lesson.topic ? `Тема: ${lesson.topic}` : 'Деталі в розкладі',
+      data: { lessonId: lesson.id },
+    },
+  );
 };
 
 export const getAll = async (req, res) => {
@@ -76,7 +94,7 @@ export const create = async (req, res) => {
   });
 
   emitLesson(req, 'lesson:created', lesson);
-
+  await notifyGroup(req, lesson, 'Заплановано заняття');
   res.status(201).json(lesson);
 };
 
@@ -96,7 +114,7 @@ export const update = async (req, res) => {
   });
 
   emitLesson(req, 'lesson:updated', lesson);
-
+  await notifyGroup(req, lesson, 'Заняття змінено');
   res.json(lesson);
 };
 
@@ -108,5 +126,8 @@ export const remove = async (req, res) => {
     groupId: lesson.groupId,
     teacherId: lesson.teacherId,
   });
+  
+  await notifyGroup(req, lesson, 'Заняття скасовано');
+
   res.status(204).send();
 };

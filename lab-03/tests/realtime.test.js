@@ -151,3 +151,43 @@ test('Lesson: події доходять до групи й викладача'
         { id: created.body.id, groupId: group.id, teacherId: teacher.id },
     ]);
 });
+
+test('Lesson: сповіщення отримують усі студенти групи (batch), викладач ні', async () => {
+    const studentSocket = await open(student.id, 'STUDENT');
+    const otherSocket = await open(other.id, 'STUDENT');
+    const teacherSocket = await open(teacher.id, 'TEACHER');
+
+    let teacherGot = false;
+    teacherSocket.on('notification', () => (teacherGot = true));
+
+    const forStudent = waitFor(studentSocket, 'notification');
+    const forOther = waitFor(otherSocket, 'notification');
+
+    const created = await request(app)
+        .post('/api/lessons')
+        .set(bearer(generateAccessToken(teacher.id, 'TEACHER')))
+        .send({
+            date: new Date().toISOString(),
+            topic: TAG,
+            subjectId: subject.id,
+            groupId: group.id,
+            teacherId: teacher.id,
+        });
+    assert.equal(created.status, 201);
+
+    const [[n1], [n2]] = await Promise.all([forStudent, forOther]);
+    assert.equal(n1.type, 'LESSON');
+    assert.equal(n1.userId, student.id);
+    assert.equal(n2.userId, other.id);
+    assert.deepEqual(n1.data, { lessonId: created.body.id });
+
+    // обидва сповіщення збережені в БД
+    const stored = await prisma.notification.count({
+        where: {
+            userId: { in: [student.id, other.id] },
+            data: { path: ['lessonId'], equals: created.body.id },
+        },
+    });
+    assert.equal(stored, 2);
+    assert.equal(teacherGot, false);
+});
