@@ -46,6 +46,7 @@ model User {
   files         File[]
   refreshTokens RefreshToken[]
   auditLogs     AuditLog[]
+  notifications Notification[]
 }
 
 model Subject {
@@ -150,4 +151,33 @@ model AuditLog {
   @@index([userId])
   @@index([action])
   @@index([createdAt])
+}
+
+enum NotificationType {
+  ATTENDANCE
+  LESSON
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+model Notification {
+  id        Int                  @id @default(autoincrement())
+  type      NotificationType
+  priority  NotificationPriority @default(NORMAL)
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }

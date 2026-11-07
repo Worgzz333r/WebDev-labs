@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/auth.js';
 import { authorize } from '../middleware/authorize.js';
 import { upload } from '../middleware/upload.js';
 
+
 const router = express.Router();
 
 router.param('id', (req, res, next, value) => {

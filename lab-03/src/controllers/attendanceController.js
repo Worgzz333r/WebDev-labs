@@ -3,6 +3,7 @@ import { logAction } from '../utils/audit.js';
 import fs from 'node:fs/promises';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 import { emitAttendance } from '../socket/emit.js';
+import { notify } from '../utils/notifications.js';
 
 const STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
 const ATTENDANCE_SORT_FIELDS = ['id', 'status'];
@@ -11,6 +12,22 @@ const include = {
   student: { select: { id: true, fullName: true } },
   document: true,
 };
+
+const STATUS_LABELS = {
+  PRESENT: 'присутній',
+  ABSENT: 'відсутній',
+  LATE: 'запізнення',
+  EXCUSED: 'поважна причина',
+};
+
+const notifyStudent = (req, record, title) =>
+  notify(req.app.get('io'), record.studentId, {
+    type: 'ATTENDANCE',
+    priority: record.status === 'ABSENT' ? 'HIGH' : 'NORMAL',
+    title,
+    body: `Статус: ${STATUS_LABELS[record.status]}`,
+    data: { attendanceId: record.id, lessonId: record.lessonId },
+  });
 
 export const getAll = async (req, res) => {
   const { lessonId, studentId, status, search, dateFrom, dateTo } = req.query;
@@ -87,6 +104,7 @@ export const create = async (req, res) => {
   });
 
   emitAttendance(req, 'attendance:created', record);
+  await notifyStudent(req, record, 'Відмічено відвідуваність');
 
   res.status(201).json(record);
 };
@@ -106,6 +124,7 @@ export const update = async (req, res) => {
   });
 
   emitAttendance(req, 'attendance:updated', record);
+  await notifyStudent(req, record, 'Відвідуваність змінено');
 
   res.json(record);
 };
