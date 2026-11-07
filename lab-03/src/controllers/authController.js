@@ -8,6 +8,7 @@ import {
   generateRefreshToken,
   verifyRefreshToken,
 } from '../utils/jwt.js';
+import { invalidate } from '../utils/cache.js';
 
 const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 
@@ -52,7 +53,7 @@ export async function register(req, res) {
   });
 
   await logAction(req, 'USER_REGISTERED', { userId: user.id, entity: 'User', entityId: user.id });
-
+  invalidate('groups:');
   res.status(201).json({
     message: 'Користувача успішно зареєстровано',
     user,

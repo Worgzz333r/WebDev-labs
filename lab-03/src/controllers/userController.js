@@ -2,6 +2,7 @@ import { hashPassword } from '../utils/password.js';
 import prisma from '../utils/prisma.js';
 import { logAction } from '../utils/audit.js';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
+import { invalidate } from '../utils/cache.js';
 
 const USER_SORT_FIELDS = ['id', 'fullName', 'email', 'createdAt'];
 const ROLES = ['ADMIN', 'TEACHER', 'STUDENT'];
@@ -63,6 +64,7 @@ export const create = async (req, res) => {
     data: { email, password: hashed, fullName, role, groupId },
     select: publicFields,
   });
+  invalidate('groups:');
   res.status(201).json(user);
 };
 
@@ -90,12 +92,13 @@ export const update = async (req, res) => {
       details: { passwordChanged: Boolean(password), role: role ?? null },
     });
   }
-
+  invalidate('groups:');
   res.json(user);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.user.delete({ where: { id } });
+  invalidate('groups:');
   res.status(204).send();
 };
