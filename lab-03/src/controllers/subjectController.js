@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { parsePagination, parseSort, buildPagination } from '../utils/query.js';
+import { emitSubject } from '../socket/emit.js';
 
 const SUBJECT_SORT_FIELDS = ['id', 'name'];
 
@@ -36,6 +37,7 @@ export const getOne = async (req, res) => {
 export const create = async (req, res) => {
   const { name } = req.body;
   const subject = await prisma.subject.create({ data: { name } });
+  await emitSubject(req, 'subject:created', subject);
   res.status(201).json(subject);
 };
 
@@ -43,11 +45,13 @@ export const update = async (req, res) => {
   const id = Number(req.params.id);
   const { name } = req.body;
   const subject = await prisma.subject.update({ where: { id }, data: { name } });
+  await emitSubject(req, 'subject:updated', subject);
   res.json(subject);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
-  await prisma.subject.delete({ where: { id } });
+  const subject = await prisma.subject.delete({ where: { id } });
+  await emitSubject(req, 'subject:deleted', { id, name: subject.name });
   res.status(204).send();
 };

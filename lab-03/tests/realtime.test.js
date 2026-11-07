@@ -242,46 +242,75 @@ test('Presence: онлайн, поки є хоча б одне з\'єднанн�
 });
 
 test('Відновлення: після перепідключення студент отримує пропущені події', async () => {
-  const token = generateAccessToken(teacher.id, 'TEACHER');
-  const api = (method, path, body) => request(app)[method](path).set(bearer(token)).send(body);
+    const token = generateAccessToken(teacher.id, 'TEACHER');
+    const api = (method, path, body) => request(app)[method](path).set(bearer(token)).send(body);
 
-  // студент онлайн, отримує першу подію й запам'ятовує seq
-  const before = await open(student.id, 'STUDENT');
-  const first = waitFor(before, 'attendance:created');
-  const created = await api('post', '/api/attendance', {
-    lessonId: lesson.id,
-    studentId: student.id,
-    status: 'ABSENT',
-  });
-  assert.equal(created.status, 201);
-  const [, { seq: lastSeq }] = await first;
+    // студент онлайн, отримує першу подію й запам'ятовує seq
+    const before = await open(student.id, 'STUDENT');
+    const first = waitFor(before, 'attendance:created');
+    const created = await api('post', '/api/attendance', {
+        lessonId: lesson.id,
+        studentId: student.id,
+        status: 'ABSENT',
+    });
+    assert.equal(created.status, 201);
+    const [, { seq: lastSeq }] = await first;
 
-  // зв'язок розірвано, поки студент офлайн, стаються зміни
-  before.close();
-  await api('put', `/api/attendance/${created.body.id}`, { status: 'LATE' });
-  await api('put', `/api/attendance/${created.body.id}`, { status: 'EXCUSED' });
-  // подія для іншого студента (студент у кімнаті заняття не підписаний, його це не стосується)
-  await api('post', '/api/attendance', { lessonId: lesson.id, studentId: other.id, status: 'ABSENT' });
+    // зв'язок розірвано, поки студент офлайн, стаються зміни
+    before.close();
+    await api('put', `/api/attendance/${created.body.id}`, { status: 'LATE' });
+    await api('put', `/api/attendance/${created.body.id}`, { status: 'EXCUSED' });
+    // подія для іншого студента (студент у кімнаті заняття не підписаний, його це не стосується)
+    await api('post', '/api/attendance', { lessonId: lesson.id, studentId: other.id, status: 'ABSENT' });
 
-  // перепідключення: запит пропущеного
-  const after = await open(student.id, 'STUDENT');
-  const res = await after.emitWithAck('events:since', lastSeq);
-  assert.equal(res.ok, true);
-  assert.deepEqual(
-    res.events.map((e) => [e.type, e.payload.status]),
-    [
-      ['attendance:updated', 'LATE'],
-      ['attendance:updated', 'EXCUSED'],
-    ],
-  );
-  assert.ok(res.events[0].seq < res.events[1].seq);
-  assert.equal(res.hasMore, false);
-  assert.equal(res.gap, false);
+    // перепідключення: запит пропущеного
+    const after = await open(student.id, 'STUDENT');
+    const res = await after.emitWithAck('events:since', lastSeq);
+    assert.equal(res.ok, true);
+    assert.deepEqual(
+        res.events.map((e) => [e.type, e.payload.status]),
+        [
+            ['attendance:updated', 'LATE'],
+            ['attendance:updated', 'EXCUSED'],
+        ],
+    );
+    assert.ok(res.events[0].seq < res.events[1].seq);
+    assert.equal(res.hasMore, false);
+    assert.equal(res.gap, false);
 
-  // повторний запит з останнім seq нічого нового не повертає
-  const again = await after.emitWithAck('events:since', res.events.at(-1).seq);
-  assert.deepEqual(again.events, []);
+    // повторний запит з останнім seq нічого нового не повертає
+    const again = await after.emitWithAck('events:since', res.events.at(-1).seq);
+    assert.deepEqual(again.events, []);
 
-  // некоректний аргумент
-  assert.deepEqual(await after.emitWithAck('events:since', 'abc'), { ok: false, error: 'bad_request' });
+    // некоректний аргумент
+    assert.deepEqual(await after.emitWithAck('events:since', 'abc'), { ok: false, error: 'bad_request' });
+});
+
+test('Group і Subject: події для персоналу, група також для своїх студентів', async () => {
+    const staff = await open(teacher.id, 'TEACHER');
+    const studentSocket = await open(student.id, 'STUDENT');
+    const admin = generateAccessToken(teacher.id, 'ADMIN'); // роль у токені достатня для ендпоінтів
+
+    // група: студент групи отримує оновлення, персонал теж
+    const forStaff = waitFor(staff, 'group:updated');
+    const forStudent = waitFor(studentSocket, 'group:updated');
+    const renamed = await request(app)
+        .put(`/api/groups/${group.id}`)
+        .set(bearer(admin))
+        .send({ name: `${TAG}-group-renamed` });
+    assert.equal(renamed.status, 200);
+    assert.equal((await forStaff)[0].name, `${TAG}-group-renamed`);
+    assert.equal((await forStudent)[0].id, group.id);
+
+    // предмет: лише персонал, студент нічого не отримує
+    let studentGot = false;
+    studentSocket.on('subject:created', () => (studentGot = true));
+    const subjectEvent = waitFor(staff, 'subject:created');
+    const createdSubject = await request(app)
+        .post('/api/subjects')
+        .set(bearer(admin))
+        .send({ name: `${TAG}-subject-new` });
+    assert.equal(createdSubject.status, 201);
+    assert.equal((await subjectEvent)[0].name, `${TAG}-subject-new`);
+    assert.equal(studentGot, false);
 });

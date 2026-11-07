@@ -1,5 +1,6 @@
 import prisma from '../utils/prisma.js';
 import { parsePagination, parseSort, buildPagination } from '../utils/query.js';
+import { emitGroup } from '../socket/emit.js';
 
 const GROUP_SORT_FIELDS = ['id', 'name'];
 
@@ -42,6 +43,7 @@ export const getOne = async (req, res) => {
 export const create = async (req, res) => {
   const { name } = req.body;
   const group = await prisma.group.create({ data: { name } });
+  await emitGroup(req, 'group:created', group);
   res.status(201).json(group);
 };
 
@@ -50,12 +52,14 @@ export const update = async (req, res) => {
   const id = Number(req.params.id);
   const { name } = req.body;
   const group = await prisma.group.update({ where: { id }, data: { name } });
+  await emitGroup(req, 'group:updated', group);
   res.json(group);
 };
 
 // DELETE /api/groups/:id
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
-  await prisma.group.delete({ where: { id } });
+  const group = await prisma.group.delete({ where: { id } });
+  await emitGroup(req, 'group:deleted', { id, name: group.name });
   res.status(204).send();
 };

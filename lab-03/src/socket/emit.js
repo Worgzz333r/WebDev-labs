@@ -19,3 +19,10 @@ export const emitLesson = (req, event, lesson) =>
     event,
     lesson,
   );
+
+// Групу бачать персонал і її студенти
+export const emitGroup = (req, event, group) =>
+  emitToRooms(req, ['staff', `group:${group.id}`], event, group);
+
+// Предмети бачить персонал
+export const emitSubject = (req, event, subject) => emitToRooms(req, ['staff'], event, subject);
