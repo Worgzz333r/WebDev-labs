@@ -8,7 +8,7 @@ const options = {
       version: '2.0.0',
       description: 'Система обліку відвідуваності: аутентифікація, авторизація, файли',
     },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    servers: [{ url: '/' }],
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
