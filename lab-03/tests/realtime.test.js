@@ -191,3 +191,50 @@ test('Lesson: сповіщення отримують усі студенти г
     assert.equal(stored, 2);
     assert.equal(teacherGot, false);
 });
+
+// Чекає подію presence:update про конкретного користувача
+const presence = (socket, userId) =>
+    new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('presence timeout')), 3000);
+        socket.on('presence:update', function handler(e) {
+            if (e.userId !== userId) return;
+            clearTimeout(timer);
+            socket.off('presence:update', handler);
+            resolve(e);
+        });
+    });
+
+test('Presence: онлайн, поки є хоча б одне з\'єднання', async () => {
+    // окремий користувач, щоб сокети з попередніх тестів не заважали
+    const user = await prisma.user.create({
+        data: {
+            email: `${TAG}-presence@example.com`,
+            password: 'x',
+            fullName: 'presence',
+            role: 'STUDENT',
+            groupId: group.id,
+        },
+    });
+    const staff = await open(teacher.id, 'TEACHER');
+
+    // перше з'єднання → персонал бачить, що користувач онлайн
+    const wentOnline = presence(staff, user.id);
+    const first = await open(user.id, 'STUDENT');
+    const online = await wentOnline;
+    assert.equal(online.online, true);
+    assert.ok((await staff.emitWithAck('presence:list')).online.includes(user.id));
+
+    // друге з'єднання й закриття першого: користувач усе ще онлайн, подій немає
+    const extra = [];
+    staff.on('presence:update', (e) => e.userId === user.id && extra.push(e));
+    const second = await open(user.id, 'STUDENT');
+    first.close();
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(extra.length, 0);
+
+    // закрили останнє з'єднання → офлайн
+    const wentOffline = presence(staff, user.id);
+    second.close();
+    assert.equal((await wentOffline).online, false);
+    assert.ok(!(await staff.emitWithAck('presence:list')).online.includes(user.id));
+});
