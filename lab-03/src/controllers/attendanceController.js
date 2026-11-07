@@ -2,6 +2,7 @@ import prisma from '../utils/prisma.js';
 import { logAction } from '../utils/audit.js';
 import fs from 'node:fs/promises';
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
+import { emitAttendance } from '../socket/emit.js';
 
 const STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
 const ATTENDANCE_SORT_FIELDS = ['id', 'status'];
@@ -84,6 +85,9 @@ export const create = async (req, res) => {
     entityId: record.id,
     details: { lessonId, studentId, status: record.status },
   });
+
+  emitAttendance(req, 'attendance:created', record);
+
   res.status(201).json(record);
 };
 
@@ -100,19 +104,27 @@ export const update = async (req, res) => {
     entityId: id,
     details: { status: record.status },
   });
+
+  emitAttendance(req, 'attendance:updated', record);
+
   res.json(record);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
-  await prisma.attendance.delete({ where: { id } });
+  const record = await prisma.attendance.delete({ where: { id } });
   await logAction(req, 'ATTENDANCE_DELETED', { entity: 'Attendance', entityId: id });
+  emitAttendance(req, 'attendance:deleted', {
+    id,
+    lessonId: record.lessonId,
+    studentId: record.studentId,
+  });
   res.status(204).send();
 };
 
 export const attachDocument = async (req, res) => {
   // Прибирає завантажений файл, якщо запит не завершився успішно
-  const cleanup = () => (req.file ? fs.unlink(req.file.path).catch(() => {}) : undefined);
+  const cleanup = () => (req.file ? fs.unlink(req.file.path).catch(() => { }) : undefined);
 
   if (!req.file) {
     return res.status(400).json({ error: 'Файл не надано' });
