@@ -15,6 +15,7 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import prisma from './utils/prisma.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
@@ -69,6 +70,7 @@ app.use('/api/files', fileRoutes);
 app.use('/api/audit-logs', auditRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
