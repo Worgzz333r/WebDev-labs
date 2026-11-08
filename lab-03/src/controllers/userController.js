@@ -64,7 +64,7 @@ export const create = async (req, res) => {
     data: { email, password: hashed, fullName, role, groupId },
     select: publicFields,
   });
-  invalidate('groups:');
+  await invalidate('groups:');
   res.status(201).json(user);
 };
 
@@ -92,13 +92,13 @@ export const update = async (req, res) => {
       details: { passwordChanged: Boolean(password), role: role ?? null },
     });
   }
-  invalidate('groups:');
+  await invalidate('groups:');
   res.json(user);
 };
 
 export const remove = async (req, res) => {
   const id = Number(req.params.id);
   await prisma.user.delete({ where: { id } });
-  invalidate('groups:');
+  await invalidate('groups:');
   res.status(204).send();
 };

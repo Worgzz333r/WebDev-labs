@@ -43,7 +43,7 @@ export const create = async (req, res) => {
   const { name } = req.body;
   const subject = await prisma.subject.create({ data: { name } });
   await emitSubject(req, 'subject:created', subject);
-  invalidate('subjects:');
+  await invalidate('subjects:');
   res.status(201).json(subject);
 };
 
@@ -52,7 +52,7 @@ export const update = async (req, res) => {
   const { name } = req.body;
   const subject = await prisma.subject.update({ where: { id }, data: { name } });
   await emitSubject(req, 'subject:updated', subject);
-  invalidate('subjects:');
+  await invalidate('subjects:');
   res.json(subject);
 };
 
@@ -60,6 +60,6 @@ export const remove = async (req, res) => {
   const id = Number(req.params.id);
   const subject = await prisma.subject.delete({ where: { id } });
   await emitSubject(req, 'subject:deleted', { id, name: subject.name });
-  invalidate('subjects:');
+  await invalidate('subjects:');
   res.status(204).send();
 };

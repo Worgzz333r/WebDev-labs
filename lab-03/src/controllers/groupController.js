@@ -50,7 +50,7 @@ export const create = async (req, res) => {
   const { name } = req.body;
   const group = await prisma.group.create({ data: { name } });
   await emitGroup(req, 'group:created', group);
-  invalidate('groups:');
+  await invalidate('groups:');
   res.status(201).json(group);
 };
 
@@ -60,7 +60,7 @@ export const update = async (req, res) => {
   const { name } = req.body;
   const group = await prisma.group.update({ where: { id }, data: { name } });
   await emitGroup(req, 'group:updated', group);
-  invalidate('groups:')
+  await invalidate('groups:')
   res.json(group);
 };
 
@@ -69,6 +69,6 @@ export const remove = async (req, res) => {
   const id = Number(req.params.id);
   const group = await prisma.group.delete({ where: { id } });
   await emitGroup(req, 'group:deleted', { id, name: group.name });
-  invalidate('groups:');
+  await invalidate('groups:');
   res.status(204).send();
 };

@@ -53,7 +53,7 @@ export async function register(req, res) {
   });
 
   await logAction(req, 'USER_REGISTERED', { userId: user.id, entity: 'User', entityId: user.id });
-  invalidate('groups:');
+  await invalidate('groups:');
   res.status(201).json({
     message: 'Користувача успішно зареєстровано',
     user,

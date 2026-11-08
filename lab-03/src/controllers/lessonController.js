@@ -1,7 +1,7 @@
 import { parsePagination, parseSort, buildPagination, toId } from '../utils/query.js';
 import prisma from '../utils/prisma.js';
 import { emitLesson } from '../socket/emit.js';
-import { notifyMany } from '../utils/notifications.js';
+import { enqueueNotifyMany } from '../queue/notifications.js';
 
 const LESSON_SORT_FIELDS = ['id', 'date', 'topic'];
 
@@ -16,7 +16,7 @@ const notifyGroup = async (req, lesson, title) => {
     where: { groupId: lesson.groupId, role: 'STUDENT' },
     select: { id: true },
   });
-  return notifyMany(
+  return enqueueNotifyMany(
     req.app.get('io'),
     students.map((s) => s.id),
     {

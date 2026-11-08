@@ -11,7 +11,7 @@ import { generateAccessToken } from '../src/utils/jwt.js';
 
 const TAG = 'rt-test';
 const httpServer = createServer(app);
-const io = initSocket(httpServer);
+const io = await initSocket(httpServer);
 app.set('io', io);
 httpServer.listen(0);
 await once(httpServer, 'listening');

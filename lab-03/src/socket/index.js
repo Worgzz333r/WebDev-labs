@@ -5,14 +5,24 @@ import { registerRoomHandlers } from './handlers/roomHandlers.js';
 import { registerPresenceHandlers } from './handlers/presenceHandlers.js';
 import { broadcastPresence, isOnline } from './presence.js';
 import { registerEventHandlers } from './handlers/eventHandlers.js';
+import { createClient } from 'redis';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { wsConnections } from '../utils/metrics.js';
 
-export function initSocket(httpServer) {
+export async function initSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
       origin: process.env.FRONTEND_URL || 'http://localhost:5173',
       credentials: true,
     },
   });
+
+  if (process.env.REDIS_URL) {
+    const pubClient = createClient({ url: process.env.REDIS_URL });
+    const subClient = pubClient.duplicate();
+    await Promise.all([pubClient.connect(), subClient.connect()]);
+    io.adapter(createAdapter(pubClient, subClient));
+  }
 
   // Автентифікація: клієнт передає JWT у auth.token
   io.use(async (socket, next) => {
@@ -34,6 +44,9 @@ export function initSocket(httpServer) {
 
   io.on('connection', async (socket) => {
     const { userId, groupId } = socket.data;
+
+    wsConnections.inc();
+    socket.on('disconnect', () => wsConnections.dec());
 
     // Персональна кімната для сповіщень, кімната групи, кімната персоналу
     socket.join(`user:${userId}`);

@@ -16,6 +16,8 @@ import swaggerSpec from './config/swagger.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import prisma from './utils/prisma.js';
 import reportRoutes from './routes/reportRoutes.js';
+import { metricsMiddleware, register } from './utils/metrics.js';
+import { httpLogger } from './utils/logger.js';
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.set('trust proxy', 1);
 
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(metricsMiddleware);
+app.use(httpLogger);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -58,6 +62,15 @@ app.get('/health', async (req, res) => {
   }
 });
 
+app.get('/metrics', async (req, res) => {
+  const token = process.env.METRICS_TOKEN;
+  if (token && req.get('authorization') !== `Bearer ${token}`) {
+    return res.status(401).end();
+  }
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
+
 app.use(express.json());
 
 app.use('/api/groups', groupRoutes);
@@ -71,6 +84,7 @@ app.use('/api/audit-logs', auditRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
+
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
