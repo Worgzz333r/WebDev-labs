@@ -7,7 +7,10 @@
 ```js
 import { io } from 'socket.io-client';
 
-const socket = io(API_URL, { auth: { token: accessToken } });
+const socket = io(API_URL, {
+  auth: { token: accessToken },
+  transports: ['websocket'], // без sticky sessions за кількох інстансів
+});
 ```
 
 - Автентифікація: JWT access-токен у `auth.token`.
@@ -158,11 +161,14 @@ const socket = io(API_URL, { auth: { token: accessToken } });
 let lastSeq = 0;
 
 socket.on('connect', async () => {
-  const res = await socket.emitWithAck('events:since', lastSeq);
-  if (res.ok) {
-    if (res.gap) await reloadStateViaRest();
+  let more = true;
+  while (more) {
+    const res = await socket.emitWithAck('events:since', lastSeq);
+    if (!res.ok) break;
+    if (res.gap) { await reloadStateViaRest(); break; }
     res.events.forEach(applyEvent);
     lastSeq = res.events.at(-1)?.seq ?? lastSeq;
+    more = res.hasMore;
   }
 });
 

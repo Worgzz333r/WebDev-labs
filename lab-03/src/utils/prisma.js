@@ -1,7 +1,13 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.ts';
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.DB_POOL_MAX) || 10,
+  idleTimeoutMillis: Number(process.env.DB_POOL_IDLE_MS) || 30000,
+  // Neon Free «прокидається» повільно, тому таймаут із запасом
+  connectionTimeoutMillis: Number(process.env.DB_POOL_TIMEOUT_MS) || 10000,
+});
 
 // Журнал запитів вмикається змінною LOG_QUERIES=true (для пошуку повільних запитів)
 const logQueries = process.env.LOG_QUERIES === 'true';
