@@ -4,9 +4,37 @@ const options = {
   definition: {
     openapi: '3.0.3',
     info: {
-      title: 'Attendance API',
+      title: 'Система обліку відвідуваності студентів API',
       version: '2.0.0',
-      description: 'Система обліку відвідуваності: аутентифікація, авторизація, файли',
+      description: `
+API для обліку відвідуваності.
+
+## Реальний час (WebSocket / Socket.io)
+
+З'єднання встановлюється за тим самим хостом/портом. Автентифікація відбувається під час ініціалізації: клієнт має передати JWT у властивості \`auth.token\`.
+
+### Кімнати (Rooms)
+Користувачі автоматично приєднуються до:
+- \`user:<id>\` — персональні сповіщення.
+- \`group:<id>\` — події своєї групи (для студентів).
+- \`staff\` — для викладачів та адміністраторів.
+
+Для приєднання до подій конкретного заняття використовуйте подію \`room:join\` з аргументом \`lesson:<id>\`.
+
+### Події від клієнта (Client-to-Server)
+Усі події підтримують підтвердження (Acknowledgements).
+- \`room:join\` (payload: string) — приєднатися до кімнати.
+- \`room:leave\` (payload: string) — покинути кімнату.
+- \`presence:list\` — отримати список користувачів онлайн.
+- \`events:since\` (payload: number) — запит пропущених подій після перепідключення (передається останній \`seq\`).
+
+### Події від сервера (Server-to-Client)
+- \`attendance:created\` / \`updated\` / \`deleted\`
+- \`lesson:created\` / \`updated\` / \`deleted\`
+- \`notification\` — нове сповіщення.
+- \`presence:update\` — зміна онлайн-статусу користувача.
+- \`auth:expired\` — токен недійсний, потрібно оновити через REST та перепідключитися.
+      `,
     },
     servers: [{ url: '/' }],
     components: {
@@ -32,7 +60,6 @@ const options = {
         },
       },
       schemas: {
-
         Error: {
           type: 'object',
           properties: { error: { type: 'string' } },
