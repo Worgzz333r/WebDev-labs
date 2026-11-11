@@ -40,6 +40,8 @@ GitHub репозиторій: [https://github.com/Worgzz333r/WebDev-labs/tree/m
 
 ![Два підключені клієнти: подія `attendance:updated` отримана в реальному часі](screenshots/realtime-two-clients.png)
 
+![Шестеро одночасних клієнтів: `lesson:created`, `presence:list`, відновлення пропущених подій (`scripts/multi-client.js`)](screenshots/multi-client.png)
+
 ![Сповіщення `notification` з пріоритетом `HIGH` після відмітки `ABSENT`](screenshots/notification-high.png)
 
 ### Рівень 3
