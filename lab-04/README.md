@@ -42,6 +42,55 @@ src/
 └── constants/       # Константи застосунку
 ```
 
+## Компоненти
+
+Усі компоненти приймають стандартні HTML-атрибути відповідного елемента (`ComponentProps`).
+
+### Button
+Props: `variant` (`primary` | `secondary` | `danger`), `size` (`sm` | `md` | `lg`), `isLoading`.
+```tsx
+<Button variant="danger" size="sm" onClick={handleDelete}>Видалити</Button>
+<Button isLoading={isSaving}>Зберегти</Button>
+```
+
+### Input
+Звичайний `<input>` зі стилями й темною темою; `ref` передається як проп (React 19).
+```tsx
+<Input placeholder="Пошук..." value={query} onChange={(e) => setQuery(e.target.value)} />
+```
+
+### Card
+Контейнер із рамкою та тінню.
+```tsx
+<Card><h2>Заголовок</h2><p>Вміст</p></Card>
+```
+
+### Badge
+Props: `variant` (`info` | `success` | `warning` | `danger`).
+```tsx
+<Badge variant="success">Активний</Badge>
+```
+
+### Loading
+Props: `label` (необов'язковий).
+```tsx
+{isLoading && <Loading label="Завантаження користувачів..." />}
+```
+
+### ErrorBoundary
+Перехоплює помилки відтворення дочірніх компонентів; `fallback` задає власний запасний UI.
+```tsx
+<ErrorBoundary fallback={<p>Помилка</p>}><Outlet /></ErrorBoundary>
+```
+
+### useTheme
+Хук повертає `{ theme, toggleTheme }`, вибір зберігається в `localStorage`.
+
+## Утиліти
+- `formatDate(iso, locale?)`: дата у форматі «12 листопада 2026 р.»
+- `formatPrice(value, currency?, locale?)`: сума у гривнях
+- `getErrorMessage(error)`: зрозуміле повідомлення з помилки Axios
+
 ## Скріншоти
 ![Головна, світла тема](docs/home-light.png)
 ![Головна, темна тема](docs/home-dark.png)

@@ -23,3 +23,9 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   error: string;
 }
+
+export interface Group {
+  id: number;
+  name: string;
+  _count: { students: number };
+}
