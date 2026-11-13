@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useAuthStore } from '@/stores/authStore';
 
 // Розділи панелі: додавайте нові сутності проєкту сюди
-const sections = [{ to: '/', title: 'Групи', text: 'Перегляд груп та кількості студентів' }];
+const sections = [{ to: '/groups', title: 'Групи', text: 'Перегляд груп та кількості студентів' }];
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);

@@ -7,6 +7,7 @@ import NotFoundPage from '@/pages/NotFoundPage';
 import LoginPage from '@/pages/LoginPage';
 import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
+import GroupsPage from '@/pages/GroupsPage';
 
 export default function App() {
   return (
@@ -23,6 +24,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="groups"
+            element={
+              <ProtectedRoute>
+                <GroupsPage />
               </ProtectedRoute>
             }
           />
