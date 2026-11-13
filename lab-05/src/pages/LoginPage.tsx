@@ -9,6 +9,7 @@ import type { AuthResponse } from '@/types/api.types';
 import Button from '@/components/common/Button';
 import Input from '@/components/common/Input';
 import FormField from '@/components/common/FormField';
+import ErrorMessage from '@/components/common/ErrorMessage';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function LoginPage() {
 
           {errors.root && (
             <p role="alert" className="text-sm text-red-500">
-              {errors.root.message}
+              {errors.root?.message && <ErrorMessage message={errors.root.message} />}
             </p>
           )}
 
