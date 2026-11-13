@@ -1,92 +1,126 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
+import toast from 'react-hot-toast';
+import { groupsService } from '@/services/groups';
+import { useDebounce } from '@/hooks/useDebounce';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
 import ErrorMessage from '@/components/common/ErrorMessage';
 import Input from '@/components/common/Input';
-import Loading from '@/components/common/Loading';
-import { getErrorMessage } from '@/services/errors';
-import { getGroups } from '@/services/groups';
-import type { Group } from '@/types/api.types';
-import { formatDate } from '@/utils/format';
-
-interface Result {
-  search: string;
-  groups?: Group[];
-  error?: string;
-  fetchedAt: string;
-}
+import { CardGridSkeleton } from '@/components/common/Skeleton';
+import { useAuthStore } from '@/stores/authStore';
 
 export default function GroupsPage() {
-  const [query, setQuery] = useState('');
+  const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
-  const [result, setResult] = useState<Result | null>(null);
+  const debouncedSearch = useDebounce(search);
+  const queryClient = useQueryClient();
 
-  // Завантаження триває, поки результат не відповідає поточному пошуку
-  const isLoading = result?.search !== search;
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ['groups', { page, search: debouncedSearch }],
+    queryFn: () => groupsService.getAll({ page, limit: 9, search: debouncedSearch || undefined }),
+    placeholderData: keepPreviousData,
+  });
 
-  useEffect(() => {
-    let ignore = false;
-    getGroups(search || undefined)
-      .then((res) => {
-        if (!ignore) setResult({ search, groups: res.data, fetchedAt: new Date().toISOString() });
-      })
-      .catch((err: unknown) => {
-        if (!ignore)
-          setResult({ search, error: getErrorMessage(err), fetchedAt: new Date().toISOString() });
-      });
-    return () => {
-      ignore = true;
-    };
-  }, [search]);
-
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setSearch(query.trim());
-  };
-
-  const handleReset = () => {
-    setQuery('');
-    setSearch('');
-  };
+  const deleteGroup = useMutation({
+    mutationFn: groupsService.remove,
+    onSuccess: () => {
+      toast.success('Групу видалено');
+      return queryClient.invalidateQueries({ queryKey: ['groups'] });
+    },
+    onError: (err) => {
+      const message = isAxiosError(err) ? err.response?.data?.error : undefined;
+      toast.error(
+        message === 'Related record does not exist'
+          ? 'Не можна видалити групу, поки в ній є студенти або заняття'
+          : (message ?? 'Не вдалося видалити групу'),
+      );
+    },
+  });
 
   return (
     <section className="space-y-6">
-      <h1 className="text-3xl font-bold">Групи</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Групи</h1>
+        {isAdmin && (
+          <Link to="/groups/create">
+            <Button>Додати групу</Button>
+          </Link>
+        )}
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:flex-row">
-        <Input
-          placeholder="Пошук групи..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <Button type="submit">Знайти</Button>
-        <Button type="button" variant="secondary" onClick={handleReset}>
-          Скинути
-        </Button>
-      </form>
+      <Input
+        aria-label="Пошук груп"
+        placeholder="Пошук групи..."
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
+      />
 
-      {isLoading && <Loading label="Завантаження груп..." />}
+      {isPending && <CardGridSkeleton />}
+      {isError && <ErrorMessage message={error.message} />}
 
-      {!isLoading && result?.error && <ErrorMessage message={result.error} />}
-
-      {!isLoading && result?.groups && (
+      {data && (
         <>
-          {result.groups.length === 0 ? (
+          {data.data.length === 0 ? (
             <p>Груп не знайдено.</p>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {result.groups.map((group) => (
+              {data.data.map((group) => (
                 <Card key={group.id}>
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="text-lg font-semibold">{group.name}</h2>
                     <Badge variant="info">{group._count.students} студ.</Badge>
                   </div>
+                  {isAdmin && (
+                    <div className="mt-4 flex gap-2">
+                      <Link to={`/groups/${group.id}/edit`}>
+                        <Button size="sm" variant="secondary">
+                          Редагувати
+                        </Button>
+                      </Link>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={deleteGroup.isPending}
+                        onClick={() => {
+                          if (group._count.students > 0) {
+                            toast.error(`У групі ${group.name} є студенти (${group._count.students}), видалити її не можна`);
+                            return;
+                          }
+                          if (confirm(`Видалити групу ${group.name}?`)) deleteGroup.mutate(group.id);
+                        }}
+                      >
+                        Видалити
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               ))}
             </div>
           )}
-          <p className="text-sm text-gray-500">Оновлено: {formatDate(result.fetchedAt)}</p>
+
+          <div className="flex items-center justify-center gap-4">
+            <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              Назад
+            </Button>
+            <span>
+              {data.pagination.page} / {Math.max(data.pagination.totalPages, 1)}
+            </span>
+            <Button
+              variant="secondary"
+              disabled={!data.pagination.hasMore}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Далі
+            </Button>
+          </div>
         </>
       )}
     </section>
