@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Badge from '@/components/common/Badge';
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
+import ErrorMessage from '@/components/common/ErrorMessage';
 import Input from '@/components/common/Input';
 import Loading from '@/components/common/Loading';
 import { getErrorMessage } from '@/services/errors';
@@ -67,11 +68,7 @@ export default function HomePage() {
 
       {isLoading && <Loading label="Завантаження груп..." />}
 
-      {!isLoading && result?.error && (
-        <p role="alert" className="rounded border border-red-300 bg-red-50 p-4 text-red-800">
-          {result.error}
-        </p>
-      )}
+      {!isLoading && result?.error && <ErrorMessage message={result.error} />}
 
       {!isLoading && result?.groups && (
         <>
