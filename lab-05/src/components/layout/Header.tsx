@@ -32,7 +32,7 @@ export default function Header() {
               <Link to="/dashboard" className="hover:text-primary-600">
                 Панель
               </Link>
-              <span className="text-sm text-gray-500">{user.name}</span>
+              <span className="text-sm text-gray-500">{user.fullName}</span>
               <Button size="sm" variant="secondary" onClick={handleLogout}>
                 Вийти
               </Button>

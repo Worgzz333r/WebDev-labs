@@ -9,7 +9,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-bold">Вітаємо, {user?.name}!</h1>
+      <h1 className="mb-6 text-3xl font-bold">Вітаємо, {user?.fullName}!</h1>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {sections.map((s) => (

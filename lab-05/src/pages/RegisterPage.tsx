@@ -18,10 +18,10 @@ export default function RegisterPage() {
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
 
-  const onSubmit = async ({ name, email, password }: RegisterFormData) => {
+  const onSubmit = async ({ fullName, email, password }: RegisterFormData) => {
     try {
       // confirmPassword на сервер не надсилаємо
-      await api.post('/auth/register', { name, email, password });
+      await api.post('/auth/register', { fullName, email, password });
       toast.success('Обліковий запис створено. Тепер увійдіть.');
       navigate('/login');
     } catch (error) {
@@ -31,13 +31,13 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg dark:bg-gray-900">
         <h2 className="mb-6 text-center text-3xl font-bold">Реєстрація</h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <FormField label="Ім'я" error={errors.name?.message}>
-            <Input {...register('name')} />
+          <FormField label="Ім'я" error={errors.fullName?.message}>
+            <Input {...register('fullName')} />
           </FormField>
           <FormField label="Email" error={errors.email?.message}>
             <Input type="email" {...register('email')} />
