@@ -35,3 +35,9 @@ export interface AuthResponse {
   user: User;
   tokens: { accessToken: string; refreshToken: string };
 }
+
+export interface GroupDetail {
+  id: number;
+  name: string;
+  students: { id: number; fullName: string; email: string }[];
+}

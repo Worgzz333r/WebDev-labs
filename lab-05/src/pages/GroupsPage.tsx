@@ -12,17 +12,21 @@ import ErrorMessage from '@/components/common/ErrorMessage';
 import Input from '@/components/common/Input';
 import { CardGridSkeleton } from '@/components/common/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
+import Breadcrumbs from '@/components/common/Breadcrumbs';
 
 export default function GroupsPage() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('name:asc');
+  const [sortBy, order] = sort.split(':') as ['id' | 'name', 'asc' | 'desc'];
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
 
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ['groups', { page, search: debouncedSearch }],
-    queryFn: () => groupsService.getAll({ page, limit: 9, search: debouncedSearch || undefined }),
+    queryKey: ['groups', { page, search: debouncedSearch, sort }],
+    queryFn: () =>
+      groupsService.getAll({ page, limit: 9, search: debouncedSearch || undefined, sortBy, order }),
     placeholderData: keepPreviousData,
   });
 
@@ -44,6 +48,7 @@ export default function GroupsPage() {
 
   return (
     <section className="space-y-6">
+      <Breadcrumbs items={[{ label: 'Головна', to: '/dashboard' }, { label: 'Групи' }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Групи</h1>
         {isAdmin && (
@@ -63,6 +68,21 @@ export default function GroupsPage() {
         }}
       />
 
+      <select
+        aria-label="Сортування"
+        value={sort}
+        onChange={(e) => {
+          setSort(e.target.value);
+          setPage(1);
+        }}
+        className="rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+      >
+        <option value="name:asc">Назва: А → Я</option>
+        <option value="name:desc">Назва: Я → А</option>
+        <option value="id:desc">Спочатку нові</option>
+        <option value="id:asc">Спочатку старі</option>
+      </select>
+
       {isPending && <CardGridSkeleton />}
       {isError && <ErrorMessage message={error.message} />}
 
@@ -75,7 +95,11 @@ export default function GroupsPage() {
               {data.data.map((group) => (
                 <Card key={group.id}>
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-lg font-semibold">{group.name}</h2>
+                    <h2 className="text-lg font-semibold">
+                      <Link to={`/groups/${group.id}`} className="hover:underline">
+                        {group.name}
+                      </Link>
+                    </h2>
                     <Badge variant="info">{group._count.students} студ.</Badge>
                   </div>
                   {isAdmin && (

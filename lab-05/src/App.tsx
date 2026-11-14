@@ -9,6 +9,7 @@ import RegisterPage from '@/pages/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import GroupsPage from '@/pages/GroupsPage';
 import GroupFormPage from '@/pages/GroupFormPage';
+import GroupDetailPage from '@/pages/GroupDetailPage';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
           <Route path="/groups/create" element={<GroupFormPage />} />
           <Route path="/groups/:id/edit" element={<GroupFormPage />} />
+          <Route path="/groups/:id" element={<GroupDetailPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

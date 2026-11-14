@@ -1,10 +1,13 @@
 import api from './api';
-import type { Group, PaginatedResponse } from '@/types/api.types';
+import type { Group, GroupDetail, PaginatedResponse } from '@/types/api.types';
+
 
 export interface GroupsQuery {
   page?: number;
   limit?: number;
   search?: string;
+  sortBy?: 'id' | 'name';
+  order?: 'asc' | 'desc';
 }
 
 export const groupsService = {
@@ -14,7 +17,7 @@ export const groupsService = {
   },
 
   getById: async (id: number) => {
-    const { data } = await api.get<Group>(`/groups/${id}`);
+    const { data } = await api.get<GroupDetail>(`/groups/${id}`);
     return data;
   },
 
