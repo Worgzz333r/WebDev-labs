@@ -5,6 +5,7 @@ const links = [
   { to: '/dashboard', label: 'Панель', icon: '📊' },
   { to: '/groups', label: 'Групи', icon: '👥' },
   { to: '/subjects', label: 'Предмети', icon: '📚' },
+  { to: '/lessons', label: 'Заняття', icon: '🗓️' },
 ];
 
 interface SidebarProps {

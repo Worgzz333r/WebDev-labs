@@ -52,3 +52,22 @@ export interface Subject {
   id: number;
   name: string;
 }
+
+export interface UserShort {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
+}
+
+export interface Lesson {
+  id: number;
+  date: string;
+  topic: string | null;
+  subjectId: number;
+  groupId: number;
+  teacherId: number;
+  subject: Subject;
+  group: { id: number; name: string };
+  teacher: { id: number; fullName: string };
+}

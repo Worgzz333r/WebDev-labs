@@ -12,6 +12,8 @@ import GroupFormPage from '@/pages/GroupFormPage';
 import GroupDetailPage from '@/pages/GroupDetailPage';
 import SubjectsPage from '@/pages/SubjectsPage';
 import SubjectFormPage from './pages/SubjectFormPage';
+import LessonFormPage from './pages/LessonFormPage';
+import LessonsPage from './pages/LessonsPage';
 
 export default function App() {
   return (
@@ -31,6 +33,9 @@ export default function App() {
           <Route path="subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
           <Route path="subjects/create" element={<ProtectedRoute><SubjectFormPage /></ProtectedRoute>} />
           <Route path="subjects/:id/edit" element={<ProtectedRoute><SubjectFormPage /></ProtectedRoute>} />
+          <Route path="lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
+          <Route path="lessons/create" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
+          <Route path="lessons/:id/edit" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
