@@ -1,11 +1,20 @@
 import { useEffect } from 'react';
 import { NavLink } from 'react-router';
+import { useAuthStore } from '@/stores/authStore';
 
-const links = [
+interface SidebarLink {
+  to: string;
+  label: string;
+  icon: string;
+  adminOnly?: boolean;
+}
+
+const links: SidebarLink[] = [
   { to: '/dashboard', label: 'Панель', icon: '📊' },
   { to: '/groups', label: 'Групи', icon: '👥' },
   { to: '/subjects', label: 'Предмети', icon: '📚' },
   { to: '/lessons', label: 'Заняття', icon: '🗓️' },
+  { to: '/users', label: 'Користувачі', icon: '🧑‍💼', adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -14,6 +23,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
+  const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     document.addEventListener('keydown', onKey);
@@ -38,20 +49,22 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
         <nav className="flex flex-col gap-1">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `rounded px-3 py-2 ${
-                  isActive ? 'bg-primary-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                }`
-              }
-            >
-              {link.icon} {link.label}
-            </NavLink>
-          ))}
+          {links
+            .filter((l) => !l.adminOnly || isAdmin)
+            .map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `rounded px-3 py-2 ${
+                    isActive ? 'bg-primary-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`
+                }
+              >
+                {link.icon} {link.label}
+              </NavLink>
+            ))}
         </nav>
       </aside>
     </>

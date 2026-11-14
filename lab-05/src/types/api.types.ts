@@ -71,3 +71,11 @@ export interface Lesson {
   group: { id: number; name: string };
   teacher: { id: number; fullName: string };
 }
+
+export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
+
+export interface UserRecord extends UserShort {
+  role: Role;
+  groupId: number | null;
+  createdAt: string;
+}

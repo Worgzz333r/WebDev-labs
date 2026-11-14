@@ -14,6 +14,8 @@ import SubjectsPage from '@/pages/SubjectsPage';
 import SubjectFormPage from './pages/SubjectFormPage';
 import LessonFormPage from './pages/LessonFormPage';
 import LessonsPage from './pages/LessonsPage';
+import UserFormPage from './pages/UserFormPage';
+import UsersPage from './pages/UsersPage';
 
 export default function App() {
   return (
@@ -36,6 +38,9 @@ export default function App() {
           <Route path="lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="lessons/create" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
           <Route path="lessons/:id/edit" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
+          <Route path="users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+          <Route path="users/create" element={<ProtectedRoute><UserFormPage /></ProtectedRoute>} />
+          <Route path="users/:id/edit" element={<ProtectedRoute><UserFormPage /></ProtectedRoute>} />F
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
