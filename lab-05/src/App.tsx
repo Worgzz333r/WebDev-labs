@@ -23,9 +23,9 @@ export default function App() {
           <Route path="about" element={<AboutPage />} />
           <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
-          <Route path="/groups/create" element={<GroupFormPage />} />
-          <Route path="/groups/:id/edit" element={<GroupFormPage />} />
-          <Route path="/groups/:id" element={<GroupDetailPage />} />
+          <Route path="groups/create" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
+          <Route path="groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
+          <Route path="groups/:id/edit" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

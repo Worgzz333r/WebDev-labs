@@ -14,6 +14,7 @@ import { CardGridSkeleton } from '@/components/common/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 
+
 export default function GroupsPage() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
   const [page, setPage] = useState(1);
