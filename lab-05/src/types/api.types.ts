@@ -42,4 +42,13 @@ export interface GroupDetail {
   students: { id: number; fullName: string; email: string }[];
 }
 
-export interface GroupStudent { id: number; fullName: string; email: string }
+export interface GroupStudent {
+  id: number;
+  fullName: string;
+  email: string
+}
+
+export interface Subject {
+  id: number;
+  name: string;
+}

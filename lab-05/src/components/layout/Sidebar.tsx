@@ -4,6 +4,7 @@ import { NavLink } from 'react-router';
 const links = [
   { to: '/dashboard', label: 'Панель', icon: '📊' },
   { to: '/groups', label: 'Групи', icon: '👥' },
+  { to: '/subjects', label: 'Предмети', icon: '📚' },
 ];
 
 interface SidebarProps {
