@@ -13,12 +13,16 @@ import { CardGridSkeleton } from '@/components/common/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
 import { subjectsService } from '@/services/subjects';
 import { useAuthStore } from '@/stores/authStore';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import type { Subject } from '@/types/api.types';
+import Grid from '@/components/common/Grid';
 
 export default function SubjectsPage() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('name:asc');
+  const [toDelete, setToDelete] = useState<Subject | null>(null);
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
 
@@ -96,11 +100,17 @@ export default function SubjectsPage() {
           {data.data.length === 0 ? (
             <p>Предметів не знайдено.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.data.map((subject) => (
-                <Card key={subject.id}>
+            <Grid
+              items={data.data}
+              getKey={(subject) => subject.id}
+              renderItem={(subject) => (
+                <Card>
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-lg font-semibold">{subject.name}</h2>
+                    <h2 className="text-lg font-semibold">
+                      <Link to={`/subjects/${subject.id}`} className="hover:underline">
+                        {subject.name}
+                      </Link>
+                    </h2>
                     <Badge variant="info">#{subject.id}</Badge>
                   </div>
                   {isAdmin && (
@@ -114,17 +124,15 @@ export default function SubjectsPage() {
                         size="sm"
                         variant="danger"
                         disabled={deleteSubject.isPending}
-                        onClick={() => {
-                          if (confirm(`Видалити предмет ${subject.name}?`)) deleteSubject.mutate(subject.id);
-                        }}
+                        onClick={() => setToDelete(subject)}
                       >
                         Видалити
                       </Button>
                     </div>
                   )}
                 </Card>
-              ))}
-            </div>
+              )}
+            />
           )}
 
           <div className="flex items-center justify-center gap-4">
@@ -139,7 +147,19 @@ export default function SubjectsPage() {
             </Button>
           </div>
         </>
-      )}
-    </section>
+      )
+      }
+
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Видалити предмет?"
+        message={`Предмет «${toDelete?.name ?? ''}» буде видалено без можливості відновлення.`}
+        isLoading={deleteSubject.isPending}
+        onCancel={() => setToDelete(null)}
+        onConfirm={() =>
+          toDelete && deleteSubject.mutate(toDelete.id, { onSettled: () => setToDelete(null) })
+        }
+      />
+    </section >
   );
 }

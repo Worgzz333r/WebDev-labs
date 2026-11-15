@@ -16,6 +16,7 @@ import { ROLES, roleLabels } from '@/schemas/user.schema';
 import { usersService } from '@/services/users';
 import { useAuthStore } from '@/stores/authStore';
 import type { Role, UserRecord } from '@/types/api.types';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const selectClass =
   'rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900';
@@ -28,6 +29,7 @@ export default function UsersPage() {
   const [role, setRole] = useState('');
   const [groupId, setGroupId] = useState('');
   const [sort, setSort] = useState('createdAt:desc');
+  const [toDelete, setToDelete] = useState<UserRecord | null>(null);
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
 
@@ -96,9 +98,7 @@ export default function UsersPage() {
               size="sm"
               variant="danger"
               disabled={deleteUser.isPending}
-              onClick={() => {
-                if (confirm(`Видалити користувача ${u.fullName}?`)) deleteUser.mutate(u.id);
-              }}
+              onClick={() => setToDelete(u)}
             >
               Видалити
             </Button>
@@ -182,6 +182,16 @@ export default function UsersPage() {
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Видалити користувача?"
+        message={`Користувача «${toDelete?.fullName ?? ''}» буде видалено без можливості відновлення.`}
+        isLoading={deleteUser.isPending}
+        onCancel={() => setToDelete(null)}
+        onConfirm={() =>
+          toDelete && deleteUser.mutate(toDelete.id, { onSettled: () => setToDelete(null) })
+        }
+      />
     </section>
   );
 }

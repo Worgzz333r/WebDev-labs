@@ -50,11 +50,7 @@ export default function LoginPage() {
             <Input type="password" placeholder="••••••••" {...register('password')} />
           </FormField>
 
-          {errors.root && (
-            <p role="alert" className="text-sm text-red-500">
-              {errors.root?.message && <ErrorMessage message={errors.root.message} />}
-            </p>
-          )}
+          {errors.root?.message && <ErrorMessage message={errors.root.message} />}
 
           <Button type="submit" className="w-full" isLoading={isSubmitting}>
             Увійти

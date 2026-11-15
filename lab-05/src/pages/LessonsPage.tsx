@@ -14,6 +14,8 @@ import { useGroupOptions, useSubjectOptions } from '@/hooks/useLookups';
 import { lessonsService } from '@/services/lessons';
 import { useAuthStore } from '@/stores/authStore';
 import type { Lesson } from '@/types/api.types';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+
 
 const selectClass =
   'rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900';
@@ -25,6 +27,7 @@ export default function LessonsPage() {
   const [groupId, setGroupId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [sort, setSort] = useState('date:desc');
+  const [toDelete, setToDelete] = useState<Lesson | null>(null);
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
 
@@ -68,37 +71,40 @@ export default function LessonsPage() {
   const columns: Column<Lesson>[] = [
     {
       header: 'Дата',
-      render: (l) => new Date(l.date).toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short' }),
+      render: (l) => (
+        <Link to={`/lessons/${l.id}`} className="hover:underline">
+          {new Date(l.date).toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short' })}
+        </Link>
+      ),
     },
+
     { header: 'Тема', render: (l) => l.topic ?? '—' },
     { header: 'Предмет', render: (l) => l.subject.name },
     { header: 'Група', render: (l) => l.group.name },
     { header: 'Викладач', render: (l) => l.teacher.fullName },
     ...(canEdit
       ? [
-          {
-            header: 'Дії',
-            render: (l: Lesson) => (
-              <div className="flex gap-2">
-                <Link to={`/lessons/${l.id}/edit`}>
-                  <Button size="sm" variant="secondary">
-                    Редагувати
-                  </Button>
-                </Link>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  disabled={deleteLesson.isPending}
-                  onClick={() => {
-                    if (confirm('Видалити це заняття?')) deleteLesson.mutate(l.id);
-                  }}
-                >
-                  Видалити
+        {
+          header: 'Дії',
+          render: (l: Lesson) => (
+            <div className="flex gap-2">
+              <Link to={`/lessons/${l.id}/edit`}>
+                <Button size="sm" variant="secondary">
+                  Редагувати
                 </Button>
-              </div>
-            ),
-          },
-        ]
+              </Link>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={deleteLesson.isPending}
+                onClick={() => setToDelete(l)}
+              >
+                Видалити
+              </Button>
+            </div>
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -187,6 +193,16 @@ export default function LessonsPage() {
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Видалити заняття?"
+        message="Заняття буде видалено без можливості відновлення."
+        isLoading={deleteLesson.isPending}
+        onCancel={() => setToDelete(null)}
+        onConfirm={() =>
+          toDelete && deleteLesson.mutate(toDelete.id, { onSettled: () => setToDelete(null) })
+        }
+      />
     </section>
   );
 }

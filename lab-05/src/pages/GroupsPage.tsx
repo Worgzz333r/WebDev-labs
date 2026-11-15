@@ -13,13 +13,16 @@ import Input from '@/components/common/Input';
 import { CardGridSkeleton } from '@/components/common/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
-
+import ConfirmDialog from '@/components/common/ConfirmDialog';
+import type { Group } from '@/types/api.types';
+import Grid from '@/components/common/Grid';
 
 export default function GroupsPage() {
   const isAdmin = useAuthStore((s) => s.user?.role === 'ADMIN');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('name:asc');
+  const [toDelete, setToDelete] = useState<Group | null>(null);
   const [sortBy, order] = sort.split(':') as ['id' | 'name', 'asc' | 'desc'];
   const debouncedSearch = useDebounce(search);
   const queryClient = useQueryClient();
@@ -92,9 +95,11 @@ export default function GroupsPage() {
           {data.data.length === 0 ? (
             <p>Груп не знайдено.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {data.data.map((group) => (
-                <Card key={group.id}>
+            <Grid
+              items={data.data}
+              getKey={(group) => group.id}
+              renderItem={(group) => (
+                <Card>
                   <div className="flex items-center justify-between gap-2">
                     <h2 className="text-lg font-semibold">
                       <Link to={`/groups/${group.id}`} className="hover:underline">
@@ -119,7 +124,7 @@ export default function GroupsPage() {
                             toast.error(`У групі ${group.name} є студенти (${group._count.students}), видалити її не можна`);
                             return;
                           }
-                          if (confirm(`Видалити групу ${group.name}?`)) deleteGroup.mutate(group.id);
+                          setToDelete(group);
                         }}
                       >
                         Видалити
@@ -127,8 +132,8 @@ export default function GroupsPage() {
                     </div>
                   )}
                 </Card>
-              ))}
-            </div>
+              )}
+            />
           )}
 
           <div className="flex items-center justify-center gap-4">
@@ -147,7 +152,18 @@ export default function GroupsPage() {
             </Button>
           </div>
         </>
-      )}
-    </section>
+      )
+      }
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Видалити групу?"
+        message={`Групу «${toDelete?.name ?? ''}» буде видалено без можливості відновлення.`}
+        isLoading={deleteGroup.isPending}
+        onCancel={() => setToDelete(null)}
+        onConfirm={() =>
+          toDelete && deleteGroup.mutate(toDelete.id, { onSettled: () => setToDelete(null) })
+        }
+      />
+    </section >
   );
 }

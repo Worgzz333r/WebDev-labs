@@ -6,6 +6,7 @@ import Button from '@/components/common/Button';
 import ErrorMessage from '@/components/common/ErrorMessage';
 import Skeleton, { TableSkeleton } from '@/components/common/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
+import List from '@/components/common/List';
 
 export default function GroupDetailPage() {
   const { id } = useParams();
@@ -55,31 +56,16 @@ export default function GroupDetailPage() {
           {group.students.length === 0 ? (
             <p>У групі ще немає студентів.</p>
           ) : (
-            <div className="overflow-hidden rounded-lg bg-white shadow dark:bg-gray-900">
-              <table className="min-w-full">
-                <thead className="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    {['ID', "Ім'я", 'Email'].map((t) => (
-                      <th
-                        key={t}
-                        className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500"
-                      >
-                        {t}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {group.students.map((s) => (
-                    <tr key={s.id}>
-                      <td className="px-6 py-4">{s.id}</td>
-                      <td className="px-6 py-4">{s.fullName}</td>
-                      <td className="px-6 py-4">{s.email}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <List
+              items={group.students}
+              getKey={(s) => s.id}
+              renderItem={(s) => (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">{s.fullName}</span>
+                  <span className="text-sm text-gray-500">{s.email}</span>
+                </div>
+              )}
+            />
           )}
         </>
       )}

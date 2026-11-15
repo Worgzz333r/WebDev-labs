@@ -18,7 +18,7 @@ export default function Header() {
     <header className="bg-white shadow-md dark:bg-gray-900">
       <nav className="container mx-auto flex items-center justify-between px-4 py-4">
         <Link to="/" className="text-2xl font-bold text-primary-600">
-          MyApp
+          Student Attendance Tracking System
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="hover:text-primary-600">

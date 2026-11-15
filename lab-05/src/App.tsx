@@ -16,6 +16,8 @@ import LessonFormPage from './pages/LessonFormPage';
 import LessonsPage from './pages/LessonsPage';
 import UserFormPage from './pages/UserFormPage';
 import UsersPage from './pages/UsersPage';
+import LessonDetailPage from './pages/LessonDetailPage';
+import SubjectDetailPage from './pages/SubjectDetailPage';
 
 export default function App() {
   return (
@@ -30,6 +32,7 @@ export default function App() {
           <Route path="dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
           <Route path="groups" element={<ProtectedRoute><GroupsPage /></ProtectedRoute>} />
           <Route path="groups/create" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
+          <Route path="subjects/:id" element={<ProtectedRoute><SubjectDetailPage /></ProtectedRoute>} />
           <Route path="groups/:id" element={<ProtectedRoute><GroupDetailPage /></ProtectedRoute>} />
           <Route path="groups/:id/edit" element={<ProtectedRoute><GroupFormPage /></ProtectedRoute>} />
           <Route path="subjects" element={<ProtectedRoute><SubjectsPage /></ProtectedRoute>} />
@@ -37,10 +40,11 @@ export default function App() {
           <Route path="subjects/:id/edit" element={<ProtectedRoute><SubjectFormPage /></ProtectedRoute>} />
           <Route path="lessons" element={<ProtectedRoute><LessonsPage /></ProtectedRoute>} />
           <Route path="lessons/create" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
+          <Route path="lessons/:id" element={<ProtectedRoute><LessonDetailPage /></ProtectedRoute>} />
           <Route path="lessons/:id/edit" element={<ProtectedRoute><LessonFormPage /></ProtectedRoute>} />
           <Route path="users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
           <Route path="users/create" element={<ProtectedRoute><UserFormPage /></ProtectedRoute>} />
-          <Route path="users/:id/edit" element={<ProtectedRoute><UserFormPage /></ProtectedRoute>} />F
+          <Route path="users/:id/edit" element={<ProtectedRoute><UserFormPage /></ProtectedRoute>} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
