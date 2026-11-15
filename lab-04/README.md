@@ -47,7 +47,7 @@ src/
 ├── services/        # Axios (api.ts) з interceptors, errors.ts, groups.ts
 ├── types/           # Типи відповідей API
 ├── utils/           # Функції форматування
-├── hooks/           # useTheme
+└── hooks/           # useTheme
 ```
 
 ## Компоненти
