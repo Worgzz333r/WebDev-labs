@@ -265,8 +265,8 @@ Props: `variant` (`info` | `success` | `warning` | `danger`).
 
 ### Тестовий обліковий запис
 ```
-Email: [email адміністратора]
-Password: [пароль]
+Email: [admin@example.com]
+Password: [admin12345]
 ```
 
 ## Автор
