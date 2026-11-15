@@ -145,6 +145,8 @@ docker run -d --name redis-lab -p 6379:6379 redis:7
 | `RATE_LIMIT_MAX` | ліміт запитів з однієї IP за 15 хвилин | `100` |
 | `AUTH_RATE_LIMIT_MAX` | ліміт НЕвдалих спроб на `/auth/login`, `/refresh`, `/change-password`, `/2fa/*` за 15 хвилин | `20` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | дані для `npm run seed:admin` | `admin@example.com` |
+| `LOG_LEVEL` | рівень журналювання pino (за замовчуванням `info`) | `info` |
+| `CACHE_TTL_MS` | час життя запису в кеші, мс (за замовчуванням 60000) | `60000` |
 
 Файл `.env` не потрапляє в репозиторій.
 

@@ -44,11 +44,10 @@ src/
 │   ├── common/      # Button, Input, Card, Badge, Loading, ErrorBoundary
 │   └── layout/      # Header, Footer, Layout
 ├── pages/           # HomePage, AboutPage, NotFoundPage
-├── services/        # Axios (api.ts) з interceptors
+├── services/        # Axios (api.ts) з interceptors, errors.ts, groups.ts
 ├── types/           # Типи відповідей API
 ├── utils/           # Функції форматування
 ├── hooks/           # useTheme
-└── constants/       # Константи застосунку
 ```
 
 ## Компоненти
