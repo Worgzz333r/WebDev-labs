@@ -7,8 +7,11 @@ const selectId = (message: string) =>
     .transform((v) => Number(v));
 
 export const lessonSchema = z.object({
-  date: z.string().min(1, { error: 'Вкажіть дату й час' }),
-  topic: z.string().trim().max(200, { error: 'Не більше 200 символів' }).optional(),
+  // дата й час розділені: дату обирає календар (react-day-picker), час — окреме поле
+  day: z.string().min(1, { error: 'Оберіть дату' }),
+  time: z.string().regex(/^\d{2}:\d{2}$/, { error: 'Вкажіть час' }),
+  // тема зберігається як HTML з Tiptap (завдання 13), тому ліміт більший за 200 символів
+  topic: z.string().trim().max(5000, { error: 'Не більше 5000 символів' }).optional(),
   subjectId: selectId('Оберіть предмет'),
   groupId: selectId('Оберіть групу'),
   teacherId: selectId('Оберіть викладача'),

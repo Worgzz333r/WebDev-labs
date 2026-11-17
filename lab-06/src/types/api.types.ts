@@ -72,6 +72,55 @@ export interface Lesson {
   teacher: { id: number; fullName: string };
 }
 
+// GET /api/lessons/:id повертає заняття разом із повним списком відвідуваності
+export interface LessonDetail extends Lesson {
+  attendance: Attendance[];
+}
+
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+
+export interface FileRecord {
+  id: number;
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  path: string;
+  uploadedBy: number;
+  createdAt: string;
+}
+
+// Document — 1:1-зв'язка відмітки відвідуваності з файлом (лабораторна робота 2).
+// GET /attendance/:id повертає document без розгорнутого file — метадані є лише у відповіді на upload.
+export interface AttendanceDocument {
+  id: number;
+  attendanceId: number;
+  fileId: number;
+  file?: FileRecord;
+}
+
+export interface Attendance {
+  id: number;
+  status: AttendanceStatus;
+  comment: string | null;
+  lessonId: number;
+  studentId: number;
+  student: { id: number; fullName: string };
+  document?: AttendanceDocument | null;
+}
+
+// Рядок звіту GET /api/reports/attendance-summary
+export interface AttendanceSummaryRow {
+  studentId: number;
+  fullName: string;
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  attendancePercent: number;
+}
+
 export type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
 
 export interface UserRecord extends UserShort {

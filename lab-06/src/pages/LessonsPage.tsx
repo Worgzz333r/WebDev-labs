@@ -5,6 +5,7 @@ import { isAxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import Button from '@/components/common/Button';
+import DatePickerField from '@/components/common/DatePickerField';
 import ErrorMessage from '@/components/common/ErrorMessage';
 import Input from '@/components/common/Input';
 import { TableSkeleton } from '@/components/common/Skeleton';
@@ -25,6 +26,7 @@ export default function LessonsPage() {
   const [search, setSearch] = useState('');
   const [groupId, setGroupId] = useState('');
   const [subjectId, setSubjectId] = useState('');
+  const [date, setDate] = useState('');
   const [sort, setSort] = useState('date:desc');
   const [toDelete, setToDelete] = useState<Lesson | null>(null);
   const debouncedSearch = useDebounce(search);
@@ -34,7 +36,7 @@ export default function LessonsPage() {
   const { data: subjects } = useSubjectOptions();
 
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ['lessons', { page, search: debouncedSearch, groupId, subjectId, sort }],
+    queryKey: ['lessons', { page, search: debouncedSearch, groupId, subjectId, date, sort }],
     queryFn: () => {
       const [sortBy, order] = sort.split(':') as ['id' | 'date' | 'topic', 'asc' | 'desc'];
       return lessonsService.getAll({
@@ -43,6 +45,9 @@ export default function LessonsPage() {
         search: debouncedSearch || undefined,
         groupId: groupId ? Number(groupId) : undefined,
         subjectId: subjectId ? Number(subjectId) : undefined,
+        // фільтр за календарною датою (завдання 12): сервер підтримує dateFrom/dateTo
+        dateFrom: date || undefined,
+        dateTo: date || undefined,
         sortBy,
         order,
       });
@@ -157,6 +162,15 @@ export default function LessonsPage() {
             </option>
           ))}
         </select>
+        <div className="w-64">
+          <DatePickerField
+            ariaLabel="Дата заняття"
+            placeholder="Усі дати"
+            allowEmpty
+            value={date}
+            onChange={(v) => resetPage(setDate)(v)}
+          />
+        </div>
         <select
           aria-label="Сортування"
           className={selectClass}

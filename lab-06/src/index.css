@@ -11,3 +11,32 @@
   --color-primary-900: #1e3a8a;
   --font-sans: 'Inter', system-ui, sans-serif;
 }
+
+/* react-day-picker (завдання 12): кольори під наші primary-кольори */
+.rdp {
+  --rdp-accent-color: #2563eb;
+  --rdp-accent-background-color: #eff6ff;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-day_button-width: 2.25rem;
+}
+
+.dark .rdp {
+  --rdp-accent-color: #3b82f6;
+  --rdp-accent-background-color: #1e3a8a;
+  --rdp-today-color: #60a5fa;
+}
+
+/* Tiptap (завдання 13): вміст редактора успадковує кольори теми */
+.ProseMirror {
+  color: inherit;
+  white-space: pre-wrap;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+

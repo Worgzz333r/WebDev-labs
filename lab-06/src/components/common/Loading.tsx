@@ -6,3 +6,13 @@ export default function Loading({ label = 'Завантаження...' }: { lab
     </div>
   );
 }
+
+// Компактний спінер для підвантаження сторінок у нескінченному прокручуванні
+export function LoadingSpinner({ label = 'Завантаження...' }: { label?: string }) {
+  return (
+    <div className="flex items-center gap-3" role="status">
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+      <span className="text-sm text-gray-500">{label}</span>
+    </div>
+  );
+}

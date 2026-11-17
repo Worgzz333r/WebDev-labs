@@ -1,5 +1,5 @@
 import api from './api';
-import type { Lesson, PaginatedResponse } from '@/types/api.types';
+import type { Lesson, LessonDetail, PaginatedResponse } from '@/types/api.types';
 
 export interface LessonsQuery {
   page?: number;
@@ -7,6 +7,8 @@ export interface LessonsQuery {
   search?: string;
   groupId?: number;
   subjectId?: number;
+  dateFrom?: string;
+  dateTo?: string;
   sortBy?: 'id' | 'date' | 'topic';
   order?: 'asc' | 'desc';
 }
@@ -25,8 +27,9 @@ export const lessonsService = {
     return data;
   },
 
+  // Деталі повертають заняття разом із відвідуваністю (student у кожному записі)
   getById: async (id: number) => {
-    const { data } = await api.get<Lesson>(`/lessons/${id}`);
+    const { data } = await api.get<LessonDetail>(`/lessons/${id}`);
     return data;
   },
 

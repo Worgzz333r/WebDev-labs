@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import PageTransition from '@/components/common/PageTransition';
 import { useAuthStore } from '@/stores/authStore';
 import { useSocketConnection } from '@/hooks/useSocketConnection';
 import { useRealtimeSync } from '@/hooks/useRealtimeSync';
@@ -32,7 +33,9 @@ export default function Layout() {
               </button>
             )}
             <ErrorBoundary>
-              <Outlet />
+              <PageTransition>
+                <Outlet />
+              </PageTransition>
             </ErrorBoundary>
           </div>
         </main>

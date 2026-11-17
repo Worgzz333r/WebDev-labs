@@ -1,11 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import Breadcrumbs from '@/components/common/Breadcrumbs';
 import Button from '@/components/common/Button';
+import DatePickerField from '@/components/common/DatePickerField';
 import ErrorMessage from '@/components/common/ErrorMessage';
 import FormField from '@/components/common/FormField';
 import Input from '@/components/common/Input';
@@ -14,14 +16,22 @@ import { useGroupOptions, useSubjectOptions, useTeacherOptions } from '@/hooks/u
 import { lessonSchema, type LessonFormData, type LessonFormInput } from '@/schemas/lesson.schema';
 import { lessonsService } from '@/services/lessons';
 import { useAuthStore } from '@/stores/authStore';
+import { htmlToText } from '@/utils/sanitize';
+
+// Tiptap важкий — завантажуємо окремим chunk лише на цій сторінці (завдання 13)
+const RichTextEditor = lazy(() => import('@/components/common/RichTextEditor'));
 
 const selectClass =
   'w-full rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900';
 
-// ISO (UTC) -> значення для <input type="datetime-local"> у локальному часі
-const toLocalInput = (iso: string) => {
+// ISO (UTC) -> { day: 'yyyy-MM-dd', time: 'HH:mm' } у локальному часі
+const isoToLocalParts = (iso: string) => {
   const d = new Date(iso);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate(),
+  ).padStart(2, '0')}`;
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return { day, time };
 };
 
 export default function LessonFormPage() {
@@ -50,13 +60,19 @@ export default function LessonFormPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<LessonFormInput, unknown, LessonFormData>({
     resolver: zodResolver(lessonSchema),
-    defaultValues: { teacherId: user?.role === 'TEACHER' ? String(user.id) : '' },
+    defaultValues: {
+      day: '',
+      time: '',
+      topic: '',
+      teacherId: user?.role === 'TEACHER' ? String(user.id) : '',
+    },
     values: lesson
       ? {
-          date: toLocalInput(lesson.date),
+          ...isoToLocalParts(lesson.date),
           topic: lesson.topic ?? '',
           subjectId: String(lesson.subjectId),
           groupId: String(lesson.groupId),
@@ -67,10 +83,14 @@ export default function LessonFormPage() {
 
   const save = useMutation({
     mutationFn: (data: LessonFormData) => {
+      // локальні дата+час -> ISO у UTC
+      const date = new Date(`${data.day}T${data.time}:00`).toISOString();
       const payload = {
-        ...data,
-        date: new Date(data.date).toISOString(),
-        topic: data.topic || undefined,
+        date,
+        topic: htmlToText(data.topic ?? '').length > 0 ? data.topic : undefined,
+        subjectId: data.subjectId,
+        groupId: data.groupId,
+        teacherId: data.teacherId,
       };
       return isEdit ? lessonsService.update(lessonId, payload) : lessonsService.create(payload);
     },
@@ -110,12 +130,40 @@ export default function LessonFormPage() {
           className="space-y-4 rounded-lg bg-white p-6 shadow dark:bg-gray-900"
           noValidate
         >
-          <FormField label="Дата й час" error={errors.date?.message}>
-            <Input type="datetime-local" {...register('date')} />
-          </FormField>
+          <div className="grid grid-cols-[1fr_auto] gap-4">
+            <FormField label="Дата" error={errors.day?.message}>
+              <Controller
+                control={control}
+                name="day"
+                render={({ field }) => (
+                  <DatePickerField
+                    ariaLabel="Дата заняття"
+                    value={field.value}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </FormField>
+
+            <FormField label="Час" error={errors.time?.message}>
+              <Input type="time" {...register('time')} className="w-32" />
+            </FormField>
+          </div>
 
           <FormField label="Тема (необов'язково)" error={errors.topic?.message}>
-            <Input placeholder="Вступ до React" {...register('topic')} />
+            <Suspense fallback={<Skeleton className="h-40" />}>
+              <Controller
+                control={control}
+                name="topic"
+                render={({ field }) => (
+                  <RichTextEditor
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    ariaLabel="Тема заняття"
+                  />
+                )}
+              />
+            </Suspense>
           </FormField>
 
           <FormField label="Предмет" error={errors.subjectId?.message}>

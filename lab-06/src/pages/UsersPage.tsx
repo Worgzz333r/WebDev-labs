@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import toast from 'react-hot-toast';
 import Badge from '@/components/common/Badge';
@@ -8,6 +8,7 @@ import Breadcrumbs from '@/components/common/Breadcrumbs';
 import Button from '@/components/common/Button';
 import ErrorMessage from '@/components/common/ErrorMessage';
 import Input from '@/components/common/Input';
+import { LoadingSpinner } from '@/components/common/Loading';
 import { TableSkeleton } from '@/components/common/Skeleton';
 import Table, { type Column } from '@/components/common/Table';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -26,7 +27,6 @@ const selectClass =
 export default function UsersPage() {
   const currentUser = useAuthStore((s) => s.user);
   const isAdmin = currentUser?.role === 'ADMIN';
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [role, setRole] = useState('');
   const [groupId, setGroupId] = useState('');
@@ -38,16 +38,25 @@ export default function UsersPage() {
   const { data: groups } = useGroupOptions();
   const groupNames = new Map(groups?.map((g) => [g.id, g.name]));
 
-  const { data, isPending, isError, error } = useQuery({
-    queryKey: ['users', { page, search: debouncedSearch, role, groupId, sort }],
-    queryFn: () => {
+  // Нескінченне прокручування (завдання 10): useInfiniteQuery замість кнопок пагінації
+  const {
+    data,
+    isPending,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['users', 'infinite', { search: debouncedSearch, role, groupId, sort }],
+    queryFn: ({ pageParam }) => {
       const [sortBy, order] = sort.split(':') as [
         'id' | 'fullName' | 'email' | 'createdAt',
         'asc' | 'desc',
       ];
       return usersService.getAll({
-        page,
-        limit: 10,
+        page: pageParam,
+        limit: 20,
         search: debouncedSearch || undefined,
         role: (role as Role) || undefined,
         groupId: groupId ? Number(groupId) : undefined,
@@ -55,9 +64,31 @@ export default function UsersPage() {
         order,
       });
     },
-    placeholderData: keepPreviousData,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasMore ? lastPage.pagination.page + 1 : undefined,
     enabled: isAdmin,
   });
+
+  const users = data?.pages.flatMap((p) => p.data) ?? [];
+  const total = data?.pages[0]?.pagination.total ?? 0;
+
+  // «Сторож» в кінці списку: як тільки він з'являється у видимій області — завантажуємо наступну сторінку
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          void fetchNextPage();
+        }
+      },
+      { rootMargin: '240px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const deleteUser = useMutation({
     mutationFn: usersService.remove,
@@ -76,13 +107,6 @@ export default function UsersPage() {
   });
 
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
-
-  const resetPage =
-    <T,>(setter: (v: T) => void) =>
-    (v: T) => {
-      setter(v);
-      setPage(1);
-    };
 
   const columns: Column<UserRecord>[] = [
     { header: 'ID', render: (u) => u.id },
@@ -136,14 +160,14 @@ export default function UsersPage() {
             aria-label="Пошук користувачів"
             placeholder="Пошук за іменем або email..."
             value={search}
-            onChange={(e) => resetPage(setSearch)(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <select
           aria-label="Роль"
           className={selectClass}
           value={role}
-          onChange={(e) => resetPage(setRole)(e.target.value)}
+          onChange={(e) => setRole(e.target.value)}
         >
           <option value="">Усі ролі</option>
           {ROLES.map((r) => (
@@ -162,14 +186,14 @@ export default function UsersPage() {
                 ?.filter((g) => String(g.id) === groupId)
                 .map((g) => ({ id: g.id, label: g.name }))[0] ?? null
             }
-            onChange={(o) => resetPage(setGroupId)(o ? String(o.id) : '')}
+            onChange={(o) => setGroupId(o ? String(o.id) : '')}
           />
         </div>
         <select
           aria-label="Сортування"
           className={selectClass}
           value={sort}
-          onChange={(e) => resetPage(setSort)(e.target.value)}
+          onChange={(e) => setSort(e.target.value)}
         >
           <option value="createdAt:desc">Нові спочатку</option>
           <option value="createdAt:asc">Старі спочатку</option>
@@ -184,27 +208,24 @@ export default function UsersPage() {
 
       {data && (
         <>
-          {data.data.length === 0 ? (
+          {users.length === 0 ? (
             <p>Користувачів не знайдено.</p>
           ) : (
-            <Table columns={columns} rows={data.data} getKey={(u) => u.id} />
+            <>
+              <p className="text-sm text-gray-500">
+                Завантажено {users.length} з {total} користувачів — прокрутіть, щоб підвантажити ще
+              </p>
+              <Table columns={columns} rows={users} getKey={(u) => u.id} />
+            </>
           )}
 
-          <div className="flex items-center justify-center gap-4">
-            <Button variant="secondary" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-              Назад
-            </Button>
-            <span>
-              {data.pagination.page} / {Math.max(data.pagination.totalPages, 1)}
-            </span>
-            <Button
-              variant="secondary"
-              disabled={!data.pagination.hasMore}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Далі
-            </Button>
+          {/* Сторож нескінченного прокручування */}
+          <div ref={sentinelRef} className="flex justify-center py-6" aria-hidden="true">
+            {isFetchingNextPage && <LoadingSpinner label="Завантаження ще сторінок…" />}
           </div>
+          {data && !hasNextPage && users.length > 0 && (
+            <p className="pb-4 text-center text-sm text-gray-400">Усі користувачі завантажені</p>
+          )}
         </>
       )}
       <ConfirmDialog
