@@ -61,6 +61,12 @@ src/
 └── test/              # setup.ts для Vitest
 ```
 
+## 🌐 Живе демо
+
+**https://web-dev-labs-lovat.vercel.app/**
+
+Бекенд: https://webdev-labs-omr1.onrender.com (lab-03, Express + Prisma + Socket.io)
+
 ## 🚀 Розгортання (Vercel) і CI/CD
 
 1. Зареєструватися на vercel.com через GitHub, «Add New… → Project» → обрати репозиторій (Vercel сам розпізнає Vite: `npm run build`, каталог `dist`).
@@ -83,7 +89,7 @@ npm test
 - Початкове завантаження: основний чанк 559 кБ (177 кБ gzip) + чанки першого екрана
 - Кеш запитів: staleTime 60 с, gcTime 10 хв; довідкові дані (групи, предмети) персистуються в localStorage, персональні — ні (безпека після logout, `queryClient.clear()`)
 - PWA: service worker пре-кешує обволонку (53 записи), API — NetworkFirst з expires 5 хв; перевірка офлайн — `npm run build && npm run preview`, DevTools → Application → Service Workers, вкладка Network → Offline
-- Метрики Lighthouse/PageSpeed на розгорнутій версії заповнити після деплою
+- Метрики Lighthouse/PageSpeed: виміряти на https://web-dev-labs-lovat.vercel.app/ через DevTools → Lighthouse
 
 ## 🔐 Безпека
 
