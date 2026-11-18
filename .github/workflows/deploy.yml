@@ -8,6 +8,10 @@ on:
   pull_request:
     branches: [main]
 
+defaults:
+  run:
+    working-directory: lab-06
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,6 +23,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: lab-06/package-lock.json
 
       - name: Встановлення залежностей
         run: npm ci
@@ -48,6 +53,7 @@ jobs:
 
       - name: Встановлення Vercel CLI
         run: npm install --global vercel@latest
+        working-directory: .
 
       - name: Отримання налаштувань проєкту (змінні VITE_* беруться з Vercel)
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
