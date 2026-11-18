@@ -18,7 +18,24 @@ interface NotificationsState {
 }
 
 export const useNotificationsStore = create<NotificationsState>((set) => ({
-  notifications: [],
+  notifications: [
+    {
+      id: 'demo-1',
+      type: 'info',
+      title: 'Нове заняття додано',
+      message: 'Заняття «Розробка на React» заплановано для групи ІПЗ-42',
+      timestamp: Date.now() - 3600000,
+      read: false,
+    },
+    {
+      id: 'demo-2',
+      type: 'warning',
+      title: 'Журнал відвідуваності',
+      message: 'Викладач оновив відмітки присутності для групи ІПЗ-41',
+      timestamp: Date.now() - 7200000,
+      read: false,
+    },
+  ],
 
   add: (n) =>
     set((state) => ({
