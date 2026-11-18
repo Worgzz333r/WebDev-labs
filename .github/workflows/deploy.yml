@@ -8,13 +8,12 @@ on:
   pull_request:
     branches: [main]
 
-defaults:
-  run:
-    working-directory: lab-06
-
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lab-06
     steps:
       - uses: actions/checkout@v5
 
@@ -53,7 +52,6 @@ jobs:
 
       - name: Встановлення Vercel CLI
         run: npm install --global vercel@latest
-        working-directory: .
 
       - name: Отримання налаштувань проєкту (змінні VITE_* беруться з Vercel)
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
