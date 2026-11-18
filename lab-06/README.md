@@ -8,7 +8,7 @@
 - [x] **Рівень 2** (завдання 8–14) — dnd, графіки, infinite scroll, зображення з crop, календар, rich text, анімації
 - [x] **Рівень 3** (завдання 15–22) — code splitting, PWA, кешування, SEO, тести, CI/CD, розгортання
 
-## ✨ Функціональність
+## Функціональність
 
 - React 19 + TypeScript + Vite, Tailwind CSS 4 (світла/темна тема)
 - Аутентифікація (JWT з refresh), захищені маршрути, ролі ADMIN/TEACHER/STUDENT
@@ -22,11 +22,11 @@
 - PWA: офлайн-режим, установка на головний екран
 - Тести компонентів (Vitest + Testing Library), CI/CD (GitHub Actions → Vercel)
 
-## 🛠 Технології
+## Технології
 
 React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router · TanStack Query 5 (з персистенцією кешу) · Zustand · Socket.io-client · React Hook Form + Zod · Headless UI · dnd-kit · Recharts · Tiptap · react-day-picker · react-easy-crop · Motion · DOMPurify · Vitest · vite-plugin-pwa
 
-## 📦 Встановлення та запуск
+## Встановлення та запуск
 
 ```bash
 npm install
@@ -42,7 +42,7 @@ npm run build # збірка + stats.html (карта бандла, у .gitignor
 npm run preview
 ```
 
-## 📁 Структура
+## Структура
 
 ```
 src/
@@ -61,20 +61,69 @@ src/
 └── test/              # setup.ts для Vitest
 ```
 
-## 🌐 Живе демо
+## Живе демо
 
 **https://web-dev-labs-lovat.vercel.app/**
 
 Бекенд: https://webdev-labs-omr1.onrender.com (lab-03, Express + Prisma + Socket.io)
 
-## 🚀 Розгортання (Vercel) і CI/CD
+### Тестові облікові дані
+
+```
+Email:    admin@example.com
+Password: admin12345
+```
+
+## Скріншоти
+
+### Головна сторінка
+
+<!-- TODO: скріншот головної сторінки -->
+![Головна сторінка](reports/screenshots/home.png)
+
+### Dashboard (панель керування, drag & drop карток, таби)
+
+<!-- TODO: скріншот дашборда -->
+![Dashboard](reports/screenshots/dashboard.png)
+
+### Статистика (графіки Recharts)
+
+<!-- TODO: скріншот вкладки статистики -->
+![Статистика](reports/screenshots/stats.png)
+
+### CRUD-інтерфейс (список з infinite scroll, модалка підтвердження)
+
+<!-- TODO: скріншот списку користувачів або іншої сутності -->
+![CRUD](reports/screenshots/crud.png)
+
+### Форма (календар, rich text, завантаження зображення з crop)
+
+<!-- TODO: скріншот форми створення/редагування -->
+![Форма](reports/screenshots/form.png)
+
+### Сповіщення в реальному часі та онлайн-статуси
+
+<!-- TODO: скріншот дзвіночка зі сповіщеннями -->
+![Real-time](reports/screenshots/realtime.png)
+
+### PWA — офлайн-режим / установка
+
+<!-- TODO: скріншот DevTools → Application → Service Workers або prompt встановлення -->
+![PWA](reports/screenshots/pwa.png)
+
+### Lighthouse (продуктивність)
+
+<!-- TODO: скріншот результатів Lighthouse -->
+![Lighthouse](reports/screenshots/lighthouse.png)
+
+## Розгортання (Vercel) і CI/CD
 
 1. Зареєструватися на vercel.com через GitHub, «Add New… → Project» → обрати репозиторій (Vercel сам розпізнає Vite: `npm run build`, каталог `dist`).
 2. У Environment Variables задати `VITE_API_URL` та `VITE_SOCKET_URL` (адреси розгорнутого сервера lab-03); після першого деплою скопіювати адресу клієнта в `FRONTEND_URL` сервера і перезапустити його.
 3. `vercel.json` містить SPA-rewrite усіх шляхів на `/index.html` — без нього пряме відкриття `/users` дало б 404. Змінні `VITE_*` підставляються під час збірки, тому після їх зміни потрібне повторне розгортання.
 4. CI/CD — `.github/workflows/deploy.yml`: на кожен push/PR у `main` виконуються лінтинг, тести та збірка; деплой на Vercel через CLI виконується лише з `main` і лише після успішних перевірок. Для нього в GitHub → Settings → Secrets and variables → Actions додати `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (ORG/PROJECT ID — з файлу `.vercel/project.json` після `npx vercel link`). Щоб не було подвійних деплоїв, вимкнути автодеплой Vercel (Settings → Git) або залишити одну зі схем.
 
-## 🧪 Тестування
+## Тестування
 
 ```bash
 npm test
@@ -83,7 +132,7 @@ npm test
 - `NotificationBell.test.tsx` — real-time сповіщення: подія збільшує лічильник непрочитаних, клік позначає прочитаним; при розмонтуванні знімається власний обробник сокета (життєвий цикл підписок)
 - `ConfirmDialog.test.tsx` — модальне підтвердження: заголовок/текст, onConfirm, «Скасувати» та закриття клавішею Escape
 
-## 📊 Продуктивність
+## Продуктивність
 
 - Кожна сторінка — окремий lazy-чанк; важкі бібліотеки виношені з початкового завантаження: Recharts (384 кБ / 110 кБ gzip) — тільки в чанку «Статистики», Tiptap (404 кБ / 128 кБ gzip) — тільки у формі заняття
 - Початкове завантаження: основний чанк 559 кБ (177 кБ gzip) + чанки першого екрана
@@ -91,13 +140,13 @@ npm test
 - PWA: service worker пре-кешує обволонку (53 записи), API — NetworkFirst з expires 5 хв; перевірка офлайн — `npm run build && npm run preview`, DevTools → Application → Service Workers, вкладка Network → Offline
 - Метрики Lighthouse/PageSpeed: виміряти на https://web-dev-labs-lovat.vercel.app/ через DevTools → Lighthouse
 
-## 🔐 Безпека
+## Безпека
 
 - JWT у `Authorization`/`auth.token`, виходу скидає і кеш запитів
 - Персональні дані не персистуються в localStorage
 - HTML з редактора санітизується DOMPurify перед рендером
 - Зображення віддаються лише авторизованим запитом (blob + object URL)
 
-## 👨‍💻 Автор
+## Автор
 
 Назар, ІПЗ-42.
