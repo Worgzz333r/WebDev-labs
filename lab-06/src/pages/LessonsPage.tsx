@@ -16,6 +16,7 @@ import { lessonsService } from '@/services/lessons';
 import { useAuthStore } from '@/stores/authStore';
 import type { Lesson } from '@/types/api.types';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
+import { htmlToText } from '@/utils/sanitize';
 
 const selectClass =
   'rounded border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-900';
@@ -84,7 +85,7 @@ export default function LessonsPage() {
       ),
     },
 
-    { header: 'Тема', render: (l) => l.topic ?? '—' },
+    { header: 'Тема', render: (l) => (l.topic ? htmlToText(l.topic) : '—') },
     { header: 'Предмет', render: (l) => l.subject.name },
     { header: 'Група', render: (l) => l.group.name },
     { header: 'Викладач', render: (l) => l.teacher.fullName },
