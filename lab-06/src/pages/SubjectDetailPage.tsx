@@ -8,6 +8,7 @@ import ErrorMessage from '@/components/common/ErrorMessage';
 import List from '@/components/common/List';
 import Skeleton, { TableSkeleton } from '@/components/common/Skeleton';
 import { useAuthStore } from '@/stores/authStore';
+import { htmlToText } from '@/utils/sanitize';
 
 export default function SubjectDetailPage() {
   const { id } = useParams();
@@ -73,7 +74,7 @@ export default function SubjectDetailPage() {
                   to={`/lessons/${l.id}`}
                   className="flex flex-wrap items-center justify-between gap-2 hover:underline"
                 >
-                  <span className="font-medium">{l.topic ?? `Заняття #${l.id}`}</span>
+                  <span className="font-medium">{l.topic ? htmlToText(l.topic) : `Заняття #${l.id}`}</span>
                   <span className="text-sm text-gray-500">
                     {l.group.name} ·{' '}
                     {new Date(l.date).toLocaleString('uk-UA', {
