@@ -1,15 +1,14 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
+import { persister, persistOptions, queryClient } from './lib/queryClient';
 import './index.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1 },
-  },
-});
+// відновлення кешу з localStorage + автоматичне збереження змін (завдання 18)
+void persistQueryClient({ queryClient, persister, ...persistOptions });
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,5 +16,5 @@ createRoot(document.getElementById('root')!).render(
       <Toaster position="top-right" />
       <App />
     </QueryClientProvider>
-  </StrictMode>
+  </StrictMode>,
 );

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { queryClient } from '@/lib/queryClient';
 import type { User } from '@/types/api.types';
 
 interface AuthState {
@@ -15,7 +16,12 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       login: (user, accessToken) => set({ user, accessToken }),
-      logout: () => set({ user: null, accessToken: null }),
+      // вихід: скидаємо і кеш запитів, щоб персональні дані не лишилися
+      // ні в пам'яті, ні в localStorage (персистенція оновлюється сама)
+      logout: () => {
+        queryClient.clear();
+        set({ user: null, accessToken: null });
+      },
     }),
     { name: 'auth-storage' }
   )

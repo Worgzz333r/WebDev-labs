@@ -1,0 +1,59 @@
+name: CI/CD
+
+# CI: лінтинг + тести + збірка на кожен push і PR у main.
+# CD: розгортання на Vercel лише з main і лише після успішних перевірок (завдання 20).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Налаштування Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Встановлення залежностей
+        run: npm ci
+
+      - name: Лінтинг
+        run: npm run lint
+
+      - name: Тести
+        run: npm test
+
+      - name: Збірка
+        run: npm run build
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Встановлення Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Отримання налаштувань проєкту (змінні VITE_* беруться з Vercel)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Збірка
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Розгортання
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
