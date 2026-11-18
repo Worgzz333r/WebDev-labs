@@ -70,9 +70,11 @@ src/
 ### Тестові облікові дані
 
 ```
-Email:    admin@example.com
-Password: admin12345
+Email:    djbambambam@gmail.com
+Password: password123
 ```
+
+(Також можна зареєструвати будь-якого нового користувача на сторінці реєстрації)
 
 ## Скріншоти
 
